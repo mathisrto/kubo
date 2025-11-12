@@ -1,0 +1,231 @@
+# Types partagés
+
+type Vector3 {
+    x: Float!
+    y: Float!
+    z: Float!
+}
+
+type Color {
+    r: Float!
+    g: Float!
+    b: Float!
+    a: Float!
+}
+
+type MutationResult {
+    acknowledged: Boolean!
+}
+
+enum CameraType {
+    perspective
+    orthographic
+}
+
+enum LightType {
+    point
+    directional
+    spot
+}
+
+# Types principaux
+
+type SceneObject {
+    id: String!
+    name: String!
+    position: Vector3!
+    rotation: Vector3!
+    scale: Vector3!
+    materialId: String!
+}
+
+type Light {
+    id: String!
+    name: String!
+    position: Vector3!
+    color: Color!
+    intensity: Float!
+    range: Float!
+    type: LightType!
+    colorMultiplier: Float
+}
+
+type Material {
+    id: String!
+    name: String!
+    albedo: Color!
+    metallic: Float!
+    roughness: Float!
+    ao: Float!
+    emissive: Color!
+}
+
+type Camera {
+    position: Vector3!
+    rotation: Vector3!
+    fov: Float!
+    near: Float!
+    far: Float!
+    type: CameraType!
+}
+
+type AmbientLight {
+    color: Color!
+    intensity: Float!
+    colorMultiplier: Float
+}
+
+type Scene {
+    objects: [SceneObject!]!
+    lights: [Light!]!
+    materials: [Material!]!
+    camera: Camera!
+    ambientLight: AmbientLight!
+    createdAt: String!
+    updatedAt: String!
+}
+
+# Inputs
+
+input Vector3Input {
+    x: Float!
+    y: Float!
+    z: Float!
+}
+
+input ColorInput {
+    r: Float!
+    g: Float!
+    b: Float!
+    a: Float!
+}
+
+input SceneObjectInput {
+    name: String!
+    position: Vector3Input!
+    rotation: Vector3Input!
+    scale: Vector3Input!
+    materialId: String!
+}
+
+input LightInput {
+    name: String!
+    position: Vector3Input!
+    color: ColorInput!
+    intensity: Float!
+    range: Float!
+    type: LightType!
+    colorMultiplier: Float
+}
+
+input MaterialInput {
+    name: String!
+    albedo: ColorInput!
+    metallic: Float!
+    roughness: Float!
+    ao: Float!
+    emissive: ColorInput!
+}
+
+# Queries
+
+type Query {
+    # AmbientLight
+    getAmbientLightColor: Color
+    getAmbientLightIntensity: Float
+    getAmbientLightColorMultiplier: Float
+    getAmbientLight: AmbientLight
+    # Camera
+    getCameraPosition: Vector3!
+    getCameraRotation: Vector3!
+    getCameraFOV: Float!
+    getCameraNear: Float!
+    getCameraFar: Float!
+    getCameraType: CameraType!
+    getCamera: Camera
+    # Light
+    getLightById(id: String!): Light
+    getLightName(id: String!): String
+    getLightPosition(id: String!): Vector3
+    getLightColor(id: String!): Color
+    getLightIntensity(id: String!): Float
+    getLightRange(id: String!): Float
+    getLightType(id: String!): LightType
+    getLightColorMultiplier(id: String!): Float
+    getLights: [Light!]!
+    # Material
+    getMaterialById(id: String!): Material
+    getMaterialName(id: String!): String
+    getMaterialAlbedo(id: String!): Color
+    getMaterialMetallic(id: String!): Float
+    getMaterialRoughness(id: String!): Float
+    getMaterialAO(id: String!): Float
+    getMaterialEmissive(id: String!): Color
+    getMaterials: [Material!]!
+    # SceneObject
+    getSceneObjectById(id: String!): SceneObject
+    getSceneObjectName(id: String!): String
+    getSceneObjectPosition(id: String!): Vector3
+    getSceneObjectRotation(id: String!): Vector3
+    getSceneObjectScale(id: String!): Vector3
+    getSceneObjectMaterialId(id: String!): String
+    getSceneObjects: [SceneObject!]!
+    # Scene
+    getScene: Scene
+    hasScene: Boolean!
+}
+
+# Mutations
+
+type Mutation {
+    # AmbientLight
+    updateAmbientLightColor(color: ColorInput!): MutationResult!
+    updateAmbientLightIntensity(intensity: Float!): MutationResult!
+    updateAmbientLightColorMultiplier(colorMultiplier: Float!): MutationResult!
+    # Camera
+    updateCameraPosition(position: Vector3Input!): MutationResult!
+    updateCameraRotation(rotation: Vector3Input!): MutationResult!
+    updateCameraFOV(fov: Float!): MutationResult!
+    updateCameraNear(near: Float!): MutationResult!
+    updateCameraFar(far: Float!): MutationResult!
+    updateCameraType(type: CameraType!): MutationResult!
+    # Light
+    updateLightName(id: String!, name: String!): MutationResult!
+    updateLightPosition(id: String!, position: Vector3Input!): MutationResult!
+    updateLightColor(id: String!, color: ColorInput!): MutationResult!
+    updateLightIntensity(id: String!, intensity: Float!): MutationResult!
+    updateLightRange(id: String!, range: Float!): MutationResult!
+    updateLightType(id: String!, type: LightType!): MutationResult!
+    updateLightColorMultiplier(
+        id: String!
+        colorMultiplier: Float!
+    ): MutationResult!
+    createLight(light: LightInput!): String!
+    removeLight(lightId: String!): MutationResult!
+    # Material
+    updateMaterialName(id: String!, name: String!): MutationResult!
+    updateMaterialAlbedo(id: String!, albedo: ColorInput!): MutationResult!
+    updateMaterialMetallic(id: String!, metallic: Float!): MutationResult!
+    updateMaterialRoughness(id: String!, roughness: Float!): MutationResult!
+    updateMaterialAO(id: String!, ao: Float!): MutationResult!
+    updateMaterialEmissive(id: String!, emissive: ColorInput!): MutationResult!
+    createMaterial(material: MaterialInput!): String!
+    removeMaterial(materialId: String!): MutationResult!
+    # SceneObject
+    updateSceneObjectName(id: String!, name: String!): MutationResult!
+    updateSceneObjectPosition(
+        id: String!
+        position: Vector3Input!
+    ): MutationResult!
+    updateSceneObjectRotation(
+        id: String!
+        rotation: Vector3Input!
+    ): MutationResult!
+    updateSceneObjectScale(id: String!, scale: Vector3Input!): MutationResult!
+    updateSceneObjectMaterial(id: String!, materialId: String!): MutationResult!
+    createSceneObject(object: SceneObjectInput!): String!
+    removeSceneObject(objectId: String!): MutationResult!
+    # Scene
+    createOrResetScene: MutationResult!
+    deleteScene: MutationResult!
+}
