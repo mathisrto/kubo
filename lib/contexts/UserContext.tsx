@@ -2,30 +2,20 @@
 
 import { User } from "@/lib/class/User";
 import { auth } from "@/lib/firebase/client";
-import { onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
+import { signInWithCustomToken, UserCredential } from "firebase/auth";
 import {
     createContext,
     ReactNode,
     useContext,
     useEffect,
-    useRef,
     useState,
 } from "react";
-
-const generateApiKeyForUser = async (uid: string) => {
-    const action = (await import("@/lib/actions")).generateApiKeyForUser;
-    return action(uid);
-};
-
-const userHasApiKey = async (uid: string) => {
-    const action = (await import("@/lib/actions")).userHasApiKey;
-    return action(uid);
-};
 
 type UserContextType = {
     user: User | null;
     setUser: (user: User | null) => void;
     logout: () => void;
+    login: (user: UserCredential) => Promise<void>;
     isLoading: boolean;
 };
 
@@ -33,6 +23,7 @@ const UserContext = createContext<UserContextType>({
     user: null,
     setUser: () => {},
     logout: () => {},
+    login: (user: UserCredential) => Promise.resolve(),
     isLoading: true,
 });
 
@@ -41,72 +32,92 @@ export const useUser = () => useContext(UserContext);
 export const UserProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const didLoginOnceRef = useRef(false);
-    const didLogoutOnceRef = useRef(false);
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-            if (firebaseUser) {
-                // Si on est déjà loggé avec le même UID, inutile de relancer un login côté serveur
-                if (didLoginOnceRef.current && user?.uid === firebaseUser.uid) {
-                    return;
-                }
+    const withLoading = async <T,>(action: () => Promise<T>): Promise<T> => {
+        setIsLoading(true);
+        try {
+            const result = await action();
+            return result;
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-                const res = await fetch("/auth/login", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        idToken: await firebaseUser.getIdToken(),
-                    }),
-                });
+    const handleLogin = async (user: UserCredential) => {
+        await withLoading(async () => {
+            const res = await fetch("/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ idToken: await user.user.getIdToken() }),
+            });
 
-                const data = await res.json();
+            if (!res.ok) throw new Error("Échec de la connexion au serveur");
 
-                if (res.ok) {
-                    const user = new User(firebaseUser);
+            setUser(new User(user.user));
+        });
+    };
 
-                    if (!(await userHasApiKey(user.uid))) {
-                        await generateApiKeyForUser(user.uid);
-                    }
-                    setUser(user);
-                    didLoginOnceRef.current = true;
-                    setIsLoading(false);
-                } else {
-                    console.error("Failed to log in:", data.error);
-                    setIsLoading(false);
-                }
-            } else {
-                if (didLogoutOnceRef.current) {
-                    didLogoutOnceRef.current = false;
-                    setIsLoading(false);
-                    return;
-                }
+    // Déconnexion centralisée
+    const handleLogout = async () => {
+        await withLoading(async () => {
+            await fetch("/auth/logout", { method: "POST" });
+            if (!user) return;
+            await auth.signOut();
+            setUser(null);
+        });
+    };
 
+    const refreshSession = async () => {
+        await withLoading(async () => {
+            try {
                 const res = await fetch("/auth/refresh", { method: "POST" });
                 const data = await res.json();
                 if (res.ok && data?.customToken) {
-                    await signInWithCustomToken(auth, data.customToken);
-                } else {
-                    setUser(null);
-                    setIsLoading(false);
+                    const user = await signInWithCustomToken(
+                        auth,
+                        data.customToken
+                    );
+                    setUser(new User(user.user));
                 }
+            } catch (error) {
+                console.error(
+                    "Erreur lors du rafraîchissement de la session :",
+                    error
+                );
+            }
+        });
+    };
+
+    useEffect(() => {
+        if (!user) refreshSession();
+    }, []);
+
+    useEffect(() => {
+        const unsubscribe = auth.onIdTokenChanged(async (firebaseUser) => {
+            if (!firebaseUser) {
+                if (!user) return;
+                handleLogout();
+                return;
+            }
+
+            if (user && user.uid === firebaseUser.uid) {
+                user.updateUserFromFirebase(firebaseUser);
             }
         });
 
         return () => unsubscribe();
     }, []);
 
-    const logout = async () => {
-        await fetch("/auth/logout", { method: "POST" });
-        await auth.signOut();
-        didLogoutOnceRef.current = true;
-        setUser(null);
-    };
-
     return (
-        <UserContext.Provider value={{ user, setUser, logout, isLoading }}>
+        <UserContext.Provider
+            value={{
+                user,
+                setUser,
+                logout: handleLogout,
+                login: handleLogin,
+                isLoading,
+            }}
+        >
             {children}
         </UserContext.Provider>
     );

@@ -1,4 +1,5 @@
 import { admin } from "@/lib/firebase/server";
+import { getUidFromSessionCookie } from "@/lib/helpers";
 import { NextRequest, NextResponse } from "next/server";
 
 // Supprime correctement le cookie de session et révoque le token Firebase
@@ -17,24 +18,12 @@ export async function POST(req: NextRequest) {
         secure: process.env.NODE_ENV === "production",
     });
 
-    res.cookies.set({
-        name: "uid",
-        value: "",
-        maxAge: 0,
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-    });
-
     // 2. Optionnel : révoquer les refresh tokens Firebase pour invalider toute session persistante
     if (session) {
         try {
-            const decoded = await admin
-                .auth()
-                .verifySessionCookie(session, true);
-            if (decoded?.sub) {
-                await admin.auth().revokeRefreshTokens(decoded.sub);
+            const uid = await getUidFromSessionCookie(session);
+            if (uid) {
+                await admin.auth().revokeRefreshTokens(uid);
             }
         } catch (_) {
             // Silencieux: si le cookie est déjà invalide on ignore

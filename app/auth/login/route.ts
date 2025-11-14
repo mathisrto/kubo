@@ -12,18 +12,6 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
-
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-
-        if (!decodedToken || !decodedToken.uid) {
-            return NextResponse.json(
-                { ok: false, error: "Invalid idToken" },
-                { status: 400 }
-            );
-        }
-
-        const uid = decodedToken.uid;
-
         const maxAge = 14 * 24 * 60 * 60;
         const sessionCookie = await admin
             .auth()
@@ -33,16 +21,6 @@ export async function POST(req: NextRequest) {
         res.cookies.set({
             name: "session",
             value: sessionCookie,
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            path: "/",
-            maxAge,
-        });
-
-        res.cookies.set({
-            name: "uid",
-            value: uid,
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",

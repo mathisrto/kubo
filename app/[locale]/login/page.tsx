@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User } from "@/lib/class/User";
 import { useUser } from "@/lib/contexts/UserContext";
 import { auth } from "@/lib/firebase/client";
 import {
@@ -39,7 +38,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const { user, setUser } = useUser();
+    const { user, login } = useUser();
     const router = useRouter();
     const t = useTranslations("Login");
 
@@ -66,6 +65,7 @@ export default function LoginPage() {
                 setIsLoading(false);
                 return;
             }
+            await login(userCredential);
         } catch (err: any) {
             setError(
                 err.code === "auth/invalid-credential"
@@ -82,7 +82,7 @@ export default function LoginPage() {
         try {
             const provider = new GoogleAuthProvider();
             const result = await signInWithPopup(auth, provider);
-            setUser(new User(result.user));
+            await login(result);
         } catch (err: any) {
             setError(err.message || t("unknown_error"));
             setIsLoading(false);

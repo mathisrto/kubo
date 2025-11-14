@@ -1,29 +1,28 @@
 import { admin } from "@/lib/firebase/server";
+import { getUidFromSessionCookie } from "@/lib/helpers";
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
     const cookie = req.cookies.get("session")?.value || null;
 
-    console.log("Received session cookie:", cookie);
-
     if (!cookie) {
         return new Response(
             JSON.stringify({ ok: false, error: "No session cookie found" }),
-            { status: 401, headers: { "Content-Type": "application/json" } }
+            { status: 200, headers: { "Content-Type": "application/json" } }
         );
     }
 
     try {
-        const decoded = await admin.auth().verifySessionCookie(cookie, true);
+        const uid = await getUidFromSessionCookie(cookie);
 
-        if (!decoded || !decoded.uid) {
+        if (!uid) {
             return new Response(
                 JSON.stringify({ ok: false, error: "Invalid session cookie" }),
-                { status: 401, headers: { "Content-Type": "application/json" } }
+                { status: 200, headers: { "Content-Type": "application/json" } }
             );
         }
 
-        const customToken = await admin.auth().createCustomToken(decoded.uid);
+        const customToken = await admin.auth().createCustomToken(uid);
 
         return new Response(JSON.stringify({ ok: true, customToken }), {
             status: 200,

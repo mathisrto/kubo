@@ -162,6 +162,11 @@ export class User {
         this._apiKey = key;
     }
 
+    updateUserFromFirebase(firebaseUser: FirebaseUser) {
+        this.displayName = firebaseUser.displayName || this.displayName;
+        this.photoURL = firebaseUser.photoURL || this.photoURL;
+    }
+
     /* Methods */
 
     /**

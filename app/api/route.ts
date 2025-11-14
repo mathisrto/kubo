@@ -4,7 +4,7 @@ import { startServerAndCreateNextHandler } from "@as-integrations/next";
 
 const handler = startServerAndCreateNextHandler(server, {
     context: async (req: AuthRequest) => {
-        const uid = req.cookies.get("uid")?.value || undefined;
+        const uid = req.headers.get("x-uid") || null;
         return { uid };
     },
 });

@@ -2,6 +2,7 @@ import { routing } from "@/i18n/routing";
 import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { getUidFromApiKey, hashApiKey } from "./lib/database/client";
+import { getUidFromSessionCookie } from "./lib/helpers";
 
 export interface AuthRequest extends NextRequest {
     uid?: string;
@@ -33,7 +34,7 @@ const i18n = createMiddleware(routing);
 const NOT_TRANSLATE = ["/api"];
 const PROTECTED = ["/api", "/dashboard"];
 const AUTH_PAGES = ["/login", "/register"];
-const VALID_ROUTES = [
+const VALID_PREFIXES = [
     "/",
     "/dashboard",
     "/login",
@@ -48,24 +49,29 @@ export async function proxy(req: NextRequest) {
     const pathname = req.nextUrl.pathname;
     const { locale, route } = parsePathname(pathname);
     const session = req.cookies.get("session")?.value;
-    let authorized = !!session;
+    const uid = await getUidFromSessionCookie(session);
+    let authorized = !!uid;
 
-    if (!VALID_ROUTES.includes(route)) {
+    if (!VALID_PREFIXES.some((prefix) => route.startsWith(prefix))) {
         return NextResponse.redirect(new URL(`/${locale}/`, req.url));
     }
 
-    // Vérifier l'authentification pour TOUTES les routes (pas seulement protégées)
-    // afin de pouvoir rediriger /login → /dashboard si connecté
     const apiKey = req.headers.get("authorization")?.split("Bearer ")[1];
 
     // Fallback sur API key si pas de session valide
-    if (!authorized && apiKey) {
-        const apiKeyUid = await getUidFromApiKey(await hashApiKey(apiKey));
-        if (apiKeyUid) {
-            authorized = true;
-        } else {
-            // API key invalide sur route protégée
-            if (PROTECTED.some((p) => route.startsWith(p))) {
+    if (route.startsWith("/api")) {
+        const res = NextResponse.next();
+
+        if (uid) {
+            res.headers.set("x-uid", uid);
+            return res;
+        } else if (apiKey) {
+            const apiKeyUid = await getUidFromApiKey(await hashApiKey(apiKey));
+
+            if (apiKeyUid) {
+                res.headers.set("x-uid", apiKeyUid);
+                return res;
+            } else {
                 return Unauthorized();
             }
         }

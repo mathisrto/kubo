@@ -1,3 +1,5 @@
+import { admin } from "./firebase/server";
+
 export function requireAuth<P = unknown, A = unknown, R = unknown>(
     resolverFn: (
         parent: P,
@@ -12,4 +14,14 @@ export function requireAuth<P = unknown, A = unknown, R = unknown>(
         }
         return resolverFn(parent, args, context, info);
     };
+}
+
+export async function getUidFromSessionCookie(cookie?: string) {
+    if (!cookie) return null;
+    try {
+        const decoded = await admin.auth().verifySessionCookie(cookie, true);
+        return decoded.uid;
+    } catch {
+        return null;
+    }
 }
