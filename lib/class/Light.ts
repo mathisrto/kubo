@@ -73,6 +73,9 @@ export class Light extends ModelClass {
      */
     constructor(light: LightType) {
         super();
+        if (light.id) {
+            this._id = light.id;
+        }
         this._name = light.name;
         this._position = new Vector3(light.position);
         this._color = new Color(light.color);
@@ -258,9 +261,9 @@ export class Light extends ModelClass {
      *
      * @returns {LightType} An object containing the light's name, position, color, intensity, range, and type.
      */
-    public serialize(): LightType {
+    public serialize(): any {
+        // Never include id in serialization - it's not part of LightInput
         return {
-            id: this._id,
             name: this._name,
             position: this._position.serialize(),
             color: this._color.serialize(),
@@ -310,27 +313,36 @@ export class Light extends ModelClass {
     async save(): Promise<void> {
         if (this.countDirtyFields() === 0) return;
 
+        // Can only save updates if light has an ID (i.e., it exists on the server)
+        if (!this._id) {
+            console.warn("Cannot save Light without an ID");
+            return;
+        }
+
         if (this.dirtyFields.has("name")) {
-            await this.repository.updateLightName(this.id, this.name);
+            await this.repository.updateLightName(this._id, this.name);
         }
         if (this.dirtyFields.has("position")) {
-            await this.repository.updateLightPosition(this.id, this.position);
+            await this.repository.updateLightPosition(this._id, this.position);
         }
         if (this.dirtyFields.has("color")) {
-            await this.repository.updateLightColor(this.id, this.color);
+            await this.repository.updateLightColor(this._id, this.color);
         }
         if (this.dirtyFields.has("intensity")) {
-            await this.repository.updateLightIntensity(this.id, this.intensity);
+            await this.repository.updateLightIntensity(
+                this._id,
+                this.intensity
+            );
         }
         if (this.dirtyFields.has("range")) {
-            await this.repository.updateLightRange(this.id, this.range);
+            await this.repository.updateLightRange(this._id, this.range);
         }
         if (this.dirtyFields.has("type")) {
-            await this.repository.updateLightType(this.id, this.type);
+            await this.repository.updateLightType(this._id, this.type);
         }
         if (this.dirtyFields.has("colorMultiplier")) {
             await this.repository.updateLightColorMultiplier(
-                this.id,
+                this._id,
                 this.colorMultiplier
             );
         }

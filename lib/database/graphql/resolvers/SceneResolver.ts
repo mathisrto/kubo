@@ -1,6 +1,6 @@
-import { Light } from "@/lib/class/Light";
-import { Material } from "@/lib/class/Material";
-import { SceneObject } from "@/lib/class/SceneObject";
+import { LightType } from "@/lib/class/Light";
+import { MaterialType } from "@/lib/class/Material";
+import { SceneObjectType } from "@/lib/class/SceneObject";
 import {
     createLight,
     createMaterial,
@@ -54,7 +54,7 @@ export const sceneResolvers = {
         createSceneObject: requireAuth(
             async (
                 _parent: unknown,
-                { object }: { object: SceneObject },
+                { object }: { object: SceneObjectType },
                 context: ContextType
             ) => {
                 const uid = context.uid;
@@ -75,7 +75,7 @@ export const sceneResolvers = {
         createLight: requireAuth(
             async (
                 _parent: unknown,
-                { light }: { light: Light },
+                { light }: { light: LightType },
                 context: ContextType
             ) => {
                 const uid = context.uid;
@@ -96,7 +96,7 @@ export const sceneResolvers = {
         createMaterial: requireAuth(
             async (
                 _parent: unknown,
-                { material }: { material: Material },
+                { material }: { material: MaterialType },
                 context: ContextType
             ) => {
                 const uid = context.uid;

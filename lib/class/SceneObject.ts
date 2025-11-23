@@ -72,6 +72,9 @@ export class SceneObject extends ModelClass {
      */
     constructor(object: SceneObjectType) {
         super();
+        if (object.id) {
+            this._id = object.id;
+        }
         this._name = object.name;
         this._vertices = object.vertices.map((v) => new Vector3(v));
         this._indices = [...object.indices];
@@ -266,14 +269,16 @@ export class SceneObject extends ModelClass {
     }
 
     /**
-     * Serializes the current `SceneObject` instance into a plain object of type `SceneObjectType`.
+     * Serializes the current `SceneObject` instance into a plain object.
+     * For objects with an ID, returns SceneObjectType.
+     * For new objects without an ID, returns an object compatible with SceneObjectInput.
      *
-     * @returns {SceneObjectType} An object containing the serialized properties of the scene object,
+     * @returns An object containing the serialized properties of the scene object,
      * including its name, vertices, indices, position, rotation, scale, and materialId.
      */
-    serialize(): SceneObjectType {
+    serialize(): any {
+        // Never include id in serialization - it's not part of SceneObjectInput
         return {
-            id: this.id,
             name: this.name,
             vertices: this.vertices.map((v) => v.serialize()),
             indices: this.indices,
@@ -302,26 +307,35 @@ export class SceneObject extends ModelClass {
     async save(): Promise<void> {
         if (this.countDirtyFields() === 0) return;
 
+        // Can only save updates if object has an ID (i.e., it exists on the server)
+        if (!this._id) {
+            console.warn("Cannot save SceneObject without an ID");
+            return;
+        }
+
         if (this.dirtyFields.has("name")) {
-            this.repository.updateSceneObjectName(this.id, this.name);
+            this.repository.updateSceneObjectName(this._id, this.name);
         }
         if (this.dirtyFields.has("position")) {
             this.repository.updateSceneObjectPosition(
-                this.id,
+                this._id,
                 this.positionVector
             );
         }
         if (this.dirtyFields.has("rotation")) {
             this.repository.updateSceneObjectRotation(
-                this.id,
+                this._id,
                 this.rotationVector
             );
         }
         if (this.dirtyFields.has("scale")) {
-            this.repository.updateSceneObjectScale(this.id, this.scaleVector);
+            this.repository.updateSceneObjectScale(this._id, this.scaleVector);
         }
         if (this.dirtyFields.has("materialId")) {
-            this.repository.updateSceneObjectMaterial(this.id, this.materialId);
+            this.repository.updateSceneObjectMaterial(
+                this._id,
+                this.materialId
+            );
         }
     }
 }

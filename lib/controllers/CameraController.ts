@@ -5,6 +5,7 @@ import { CAMERA_TYPES } from "../constants";
 export class CameraController {
     private appCamera: AppCamera;
     private threeCamera: THREE.Camera;
+    private _unsubscribe?: () => void;
 
     constructor(appCamera: AppCamera) {
         this.appCamera = appCamera;
@@ -22,8 +23,47 @@ export class CameraController {
             appCamera.rotation.z
         );
 
-        // initial sync
-        this.updateThreeCamera();
+        // initial sync (per-field)
+        this.updatePosition();
+        this.updateRotation();
+        this.updateFov();
+        this.updateNearFar();
+
+        // subscribe to model changes and update three camera accordingly
+        const unsubscribes: Array<() => void> = [];
+        if (typeof this.appCamera.onFieldChange === "function") {
+            unsubscribes.push(
+                this.appCamera.onFieldChange("fov", () => this.updateFov())
+            );
+            unsubscribes.push(
+                this.appCamera.onFieldChange("near", () => this.updateNearFar())
+            );
+            unsubscribes.push(
+                this.appCamera.onFieldChange("far", () => this.updateNearFar())
+            );
+            unsubscribes.push(
+                this.appCamera.onFieldChange("position", () =>
+                    this.updatePosition()
+                )
+            );
+            unsubscribes.push(
+                this.appCamera.onFieldChange("rotation", () =>
+                    this.updateRotation()
+                )
+            );
+            // recreate camera when type changes
+            unsubscribes.push(
+                this.appCamera.onFieldChange("type", () => {
+                    this.threeCamera = this.createThreeCamera(this.appCamera);
+                    // after recreating, sync per-field
+                    this.updatePosition();
+                    this.updateRotation();
+                    this.updateFov();
+                    this.updateNearFar();
+                })
+            );
+        }
+        this._unsubscribe = () => unsubscribes.forEach((u) => u());
 
         console.log("CameraController initialized", this.threeCamera);
     }
@@ -65,44 +105,59 @@ export class CameraController {
         return this.threeCamera;
     }
 
+    // (Removed full-sync method; controllers now react per-field.)
+
     /**
-     * Synchronise toute la caméra ThreeJS avec le modèle
+     * Update only the FOV on the three camera (if perspective)
      */
-    private updateThreeCamera() {
-        const pos = this.appCamera.position;
-        const rot = this.appCamera.rotation;
-
-        this.threeCamera.position.set(pos.x, pos.y, pos.z);
-
-        if (
-            this.threeCamera instanceof THREE.PerspectiveCamera ||
-            this.threeCamera instanceof THREE.OrthographicCamera
-        ) {
-            this.threeCamera.rotation.set(rot.x, rot.y, rot.z);
-        }
-
+    updateFov() {
         if (this.threeCamera instanceof THREE.PerspectiveCamera) {
             this.threeCamera.fov = this.appCamera.fov;
+            this.threeCamera.updateProjectionMatrix();
         }
+    }
 
-        if (this.threeCamera instanceof THREE.OrthographicCamera) {
-            // Pour l'orthographic, on peut recalculer left/right/top/bottom si nécessaire
-            const aspect = window.innerWidth / window.innerHeight;
-            const frustumHeight = 10;
-            const frustumWidth = frustumHeight * aspect;
-            this.threeCamera.left = -frustumWidth / 2;
-            this.threeCamera.right = frustumWidth / 2;
-            this.threeCamera.top = frustumHeight / 2;
-            this.threeCamera.bottom = -frustumHeight / 2;
-        }
-
+    /**
+     * Update only near/far on the three camera
+     */
+    updateNearFar() {
         if (
             this.threeCamera instanceof THREE.PerspectiveCamera ||
             this.threeCamera instanceof THREE.OrthographicCamera
         ) {
             this.threeCamera.near = this.appCamera.near;
             this.threeCamera.far = this.appCamera.far;
+            if (this.threeCamera instanceof THREE.OrthographicCamera) {
+                const aspect = window.innerWidth / window.innerHeight;
+                const frustumHeight = 10;
+                const frustumWidth = frustumHeight * aspect;
+                this.threeCamera.left = -frustumWidth / 2;
+                this.threeCamera.right = frustumWidth / 2;
+                this.threeCamera.top = frustumHeight / 2;
+                this.threeCamera.bottom = -frustumHeight / 2;
+            }
             this.threeCamera.updateProjectionMatrix();
+        }
+    }
+
+    /**
+     * Update only the position on the three camera
+     */
+    updatePosition() {
+        const pos = this.appCamera.position;
+        this.threeCamera.position.set(pos.x, pos.y, pos.z);
+    }
+
+    /**
+     * Update only the rotation on the three camera
+     */
+    updateRotation() {
+        const rot = this.appCamera.rotation;
+        if (
+            this.threeCamera instanceof THREE.PerspectiveCamera ||
+            this.threeCamera instanceof THREE.OrthographicCamera
+        ) {
+            this.threeCamera.rotation.set(rot.x, rot.y, rot.z);
         }
     }
 
@@ -122,5 +177,12 @@ export class CameraController {
             this.threeCamera.bottom = -frustumHeight / 2;
             this.threeCamera.updateProjectionMatrix();
         }
+    }
+
+    /**
+     * Dispose subscriptions when controller is no longer used
+     */
+    dispose() {
+        if (this._unsubscribe) this._unsubscribe();
     }
 }

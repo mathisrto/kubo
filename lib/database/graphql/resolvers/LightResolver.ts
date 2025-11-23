@@ -24,48 +24,72 @@ export const lightResolvers = {
         getLightById: requireAuth(
             async (_: unknown, { id }: LightType, context: ContextType) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 return await getLightById(uid, id);
             }
         ),
         getLightName: requireAuth(
             async (_: unknown, { id }: LightType, context: ContextType) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 return await getLightName(uid, id);
             }
         ),
         getLightPosition: requireAuth(
             async (_: unknown, { id }: LightType, context: ContextType) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 return await getLightPosition(uid, id);
             }
         ),
         getLightColor: requireAuth(
             async (_: unknown, { id }: LightType, context: ContextType) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 return await getLightColor(uid, id);
             }
         ),
         getLightIntensity: requireAuth(
             async (_: unknown, { id }: LightType, context: ContextType) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 return await getLightIntensity(uid, id);
             }
         ),
         getLightRange: requireAuth(
             async (_: unknown, { id }: LightType, context: ContextType) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 return await getLightRange(uid, id);
             }
         ),
         getLightType: requireAuth(
             async (_: unknown, { id }: LightType, context: ContextType) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 return await getLightType(uid, id);
             }
         ),
         getLightColorMultiplier: requireAuth(
             async (_: unknown, { id }: LightType, context: ContextType) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 return await getLightColorMultiplier(uid, id);
             }
         ),
@@ -78,6 +102,9 @@ export const lightResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 const acknowledged = await updateLightName(uid, id, name);
                 return { acknowledged };
             }
@@ -89,6 +116,9 @@ export const lightResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 const acknowledged = await updateLightPosition(
                     uid,
                     id,
@@ -104,6 +134,9 @@ export const lightResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 const acknowledged = await updateLightColor(uid, id, color);
                 return { acknowledged };
             }
@@ -115,6 +148,9 @@ export const lightResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 const acknowledged = await updateLightIntensity(
                     uid,
                     id,
@@ -130,6 +166,9 @@ export const lightResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 const acknowledged = await updateLightRange(uid, id, range);
                 return { acknowledged };
             }
@@ -141,6 +180,9 @@ export const lightResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 const acknowledged = await updateLightType(uid, id, type);
                 return { acknowledged };
             }
@@ -155,6 +197,9 @@ export const lightResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Light ID is required");
+                }
                 const acknowledged = await updateLightColorMultiplier(
                     uid,
                     id,

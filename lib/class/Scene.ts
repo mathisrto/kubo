@@ -27,10 +27,11 @@ export type SceneType = {
 };
 
 type CollectionType = {
-    id: string;
+    id?: string;
     save: () => Promise<void>;
     countDirtyFields: () => number;
     clearDirtyFields: () => void;
+    serialize: () => any;
 };
 
 /**
@@ -220,12 +221,12 @@ export class Scene extends ModelClass {
      *
      * @param objId - The unique identifier of the object to remove.
      */
-    removeObject(objId: SceneType["objects"][number]["name"]): void {
+    removeObject(objId: SceneType["objects"][number]["id"]): void {
         const initialLength = this.objects.length;
-        this.objects = this.objects.filter((obj) => obj.name !== objId);
+        this.objects = this.objects.filter((obj) => obj.id !== objId);
         if (this.objects.length === initialLength) {
             throw new Error(
-                `Object with name "${objId}" not found in the scene.`
+                `Object with id "${objId}" not found in the scene.`
             );
         }
         this.markFieldDirty("objects");
@@ -340,25 +341,41 @@ export class Scene extends ModelClass {
     private async syncCollection<T extends CollectionType>(
         currentItems: T[],
         getExisting: () => Promise<T[]>,
-        createItem: (item: T) => Promise<void>,
+        createItem: (item: T) => Promise<string>,
         removeItem: (id: string) => Promise<void>
     ) {
-        const ids = currentItems.map((i) => i.id);
         const existingItems = await getExisting();
-        const existingIds = existingItems.map((i) => i.id);
+        const existingIds = existingItems
+            .map((i) => i.id)
+            .filter(Boolean) as string[];
 
-        const toCreate = currentItems.filter(
-            (i) => !existingIds.includes(i.id)
+        // Items without ID are new and need to be created
+        const toCreate = currentItems.filter((i) => !i.id);
+
+        // Items with ID that don't exist on server should also be created
+        const toCreateWithTempId = currentItems.filter(
+            (i) => i.id && !existingIds.includes(i.id)
         );
-        const toRemove = existingIds.filter((id) => !ids.includes(id));
 
-        await Promise.all(toCreate.map(createItem));
+        // Items that exist on server but not locally should be removed
+        const currentIds = currentItems
+            .map((i) => i.id)
+            .filter(Boolean) as string[];
+        const toRemove = existingIds.filter((id) => !currentIds.includes(id));
+
+        // Create new items and update their IDs
+        for (const item of [...toCreate, ...toCreateWithTempId]) {
+            const newId = await createItem(item);
+            // Update the item's ID with the server-generated one (access private field directly)
+            (item as any)._id = newId;
+        }
+
         await Promise.all(toRemove.map(removeItem));
 
-        // Update the remaining items
+        // Update the remaining items that have changes
         await Promise.all(
             currentItems
-                .filter((i) => i.countDirtyFields() > 0)
+                .filter((i) => i.id && i.countDirtyFields() > 0)
                 .map((i) => i.save())
         );
     }
@@ -377,13 +394,23 @@ export class Scene extends ModelClass {
             await this.syncCollection(
                 this._objects,
                 async () => {
+                    console.log(
+                        "[Scene.save] Fetching existing scene objects..."
+                    );
                     const objects = await this.repository.getSceneObjects();
                     return objects;
                 },
                 async (obj) => {
-                    await this.repository.createSceneObject(obj);
+                    console.log("[Scene.save] Creating new scene object...");
+                    return await this.repository.createSceneObject(
+                        obj as SceneObject
+                    );
                 },
                 async (id) => {
+                    console.log(
+                        "[Scene.save] Removing scene object with id:",
+                        id
+                    );
                     await this.repository.removeSceneObject(id);
                 }
             );
@@ -393,13 +420,16 @@ export class Scene extends ModelClass {
             await this.syncCollection(
                 this._lights,
                 async () => {
+                    console.log("[Scene.save] Fetching existing lights...");
                     const lights = await this.repository.getLights();
                     return lights;
                 },
                 async (light) => {
-                    await this.repository.createLight(light);
+                    console.log("[Scene.save] Creating new light...");
+                    return await this.repository.createLight(light as Light);
                 },
                 async (id) => {
+                    console.log("[Scene.save] Removing light with id:", id);
                     await this.repository.removeLight(id);
                 }
             );
@@ -409,13 +439,18 @@ export class Scene extends ModelClass {
             await this.syncCollection(
                 this._materials,
                 async () => {
+                    console.log("[Scene.save] Fetching existing materials...");
                     const materials = await this.repository.getMaterials();
                     return materials;
                 },
                 async (material) => {
-                    await this.repository.createMaterial(material);
+                    console.log("[Scene.save] Creating new material...");
+                    return await this.repository.createMaterial(
+                        material as Material
+                    );
                 },
                 async (id) => {
+                    console.log("[Scene.save] Removing material with id:", id);
                     await this.repository.removeMaterial(id);
                 }
             );
@@ -432,5 +467,407 @@ export class Scene extends ModelClass {
         }
 
         this.clearDirtyFields();
+    }
+
+    async createCube() {
+        const vertices = new Float32Array([
+            -0.5,
+            -0.5,
+            0.5, // 0
+            0.5,
+            -0.5,
+            0.5, // 1
+            0.5,
+            0.5,
+            0.5, // 2
+            -0.5,
+            0.5,
+            0.5, // 3
+            -0.5,
+            -0.5,
+            -0.5, // 4
+            0.5,
+            -0.5,
+            -0.5, // 5
+            0.5,
+            0.5,
+            -0.5, // 6
+            -0.5,
+            0.5,
+            -0.5, // 7
+        ]);
+
+        const indices = [
+            0,
+            1,
+            2,
+            0,
+            2,
+            3, // front
+            1,
+            5,
+            6,
+            1,
+            6,
+            2, // right
+            5,
+            4,
+            7,
+            5,
+            7,
+            6, // back
+            4,
+            0,
+            3,
+            4,
+            3,
+            7, // left
+            3,
+            2,
+            6,
+            3,
+            6,
+            7, // top
+            4,
+            5,
+            1,
+            4,
+            1,
+            0, // bottom
+        ];
+
+        const cubeObject = new SceneObject({
+            id: `cube-${Date.now()}`,
+            name: `Cube-${Date.now()}`,
+            vertices: Array.from({ length: vertices.length / 3 }, (_, i) => ({
+                x: vertices[i * 3 + 0],
+                y: vertices[i * 3 + 1],
+                z: vertices[i * 3 + 2],
+            })),
+            indices: indices,
+            position: { x: 0, y: 0, z: 0 },
+            rotation: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+            materialId: "default",
+        });
+
+        this.addObject(cubeObject);
+        this.save();
+    }
+
+    async createSphere() {
+        // Icosphere generation: start with icosahedron, then subdivide
+        const t = (1.0 + Math.sqrt(5.0)) / 2.0;
+
+        // Initial icosahedron vertices (12 vertices)
+        const initialVertices: number[] = [
+            -1,
+            t,
+            0,
+            1,
+            t,
+            0,
+            -1,
+            -t,
+            0,
+            1,
+            -t,
+            0,
+            0,
+            -1,
+            t,
+            0,
+            1,
+            t,
+            0,
+            -1,
+            -t,
+            0,
+            1,
+            -t,
+            t,
+            0,
+            -1,
+            t,
+            0,
+            1,
+            -t,
+            0,
+            -1,
+            -t,
+            0,
+            1,
+        ];
+
+        // Initial icosahedron faces (20 triangles)
+        const initialIndices = [
+            0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11, 1, 5, 9, 5, 11, 4,
+            11, 10, 2, 10, 7, 6, 7, 1, 8, 3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3,
+            8, 9, 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1,
+        ];
+
+        // Normalize vertices to unit sphere
+        const normalize = (x: number, y: number, z: number) => {
+            const len = Math.sqrt(x * x + y * y + z * z);
+            return { x: x / len, y: y / len, z: z / len };
+        };
+
+        let vertices = initialVertices
+            .map((v, i) => {
+                if (i % 3 === 0) {
+                    const { x, y, z } = normalize(
+                        initialVertices[i],
+                        initialVertices[i + 1],
+                        initialVertices[i + 2]
+                    );
+                    return [x, y, z];
+                }
+                return null;
+            })
+            .filter((v) => v !== null)
+            .flat() as number[];
+
+        let indices = [...initialIndices];
+
+        // Subdivide for smoother sphere (1 subdivision = 80 triangles, 2 = 320)
+        const subdivisions = 2;
+        for (let s = 0; s < subdivisions; s++) {
+            const newIndices: number[] = [];
+            const midpointCache = new Map<string, number>();
+
+            const getMidpoint = (i1: number, i2: number): number => {
+                const key = i1 < i2 ? `${i1}-${i2}` : `${i2}-${i1}`;
+                if (midpointCache.has(key)) {
+                    return midpointCache.get(key)!;
+                }
+
+                const x1 = vertices[i1 * 3 + 0];
+                const y1 = vertices[i1 * 3 + 1];
+                const z1 = vertices[i1 * 3 + 2];
+                const x2 = vertices[i2 * 3 + 0];
+                const y2 = vertices[i2 * 3 + 1];
+                const z2 = vertices[i2 * 3 + 2];
+
+                const { x, y, z } = normalize(
+                    (x1 + x2) / 2,
+                    (y1 + y2) / 2,
+                    (z1 + z2) / 2
+                );
+
+                const newIndex = vertices.length / 3;
+                vertices.push(x, y, z);
+                midpointCache.set(key, newIndex);
+                return newIndex;
+            };
+
+            for (let i = 0; i < indices.length; i += 3) {
+                const v1 = indices[i];
+                const v2 = indices[i + 1];
+                const v3 = indices[i + 2];
+
+                const a = getMidpoint(v1, v2);
+                const b = getMidpoint(v2, v3);
+                const c = getMidpoint(v3, v1);
+
+                newIndices.push(v1, a, c);
+                newIndices.push(v2, b, a);
+                newIndices.push(v3, c, b);
+                newIndices.push(a, b, c);
+            }
+
+            indices = newIndices;
+        }
+
+        // Scale to desired radius
+        const radius = 0.5;
+        vertices = vertices.map((v) => v * radius);
+
+        const sphereObject = new SceneObject({
+            id: `sphere-${Date.now()}`,
+            name: `Sphere-${Date.now()}`,
+            vertices: Array.from({ length: vertices.length / 3 }, (_, i) => ({
+                x: vertices[i * 3 + 0],
+                y: vertices[i * 3 + 1],
+                z: vertices[i * 3 + 2],
+            })),
+            indices: indices,
+            position: { x: 0, y: 0, z: 0 },
+            rotation: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+            materialId: "default",
+        });
+
+        this.addObject(sphereObject);
+        this.save();
+    }
+
+    async createCylinder() {
+        // Cylinder parameters
+        const radius = 0.5;
+        const height = 1.0;
+        const radialSegments = 32;
+        const heightSegments = 1;
+        const openEnded = false;
+
+        const vertices: number[] = [];
+        const indices: number[] = [];
+
+        // Generate vertices
+        for (let y = 0; y <= heightSegments; y++) {
+            const v = y / heightSegments;
+            const posY = v * height - height / 2;
+
+            for (let x = 0; x <= radialSegments; x++) {
+                const u = x / radialSegments;
+                const theta = u * Math.PI * 2;
+
+                const posX = radius * Math.cos(theta);
+                const posZ = radius * Math.sin(theta);
+
+                vertices.push(posX, posY, posZ);
+            }
+        }
+
+        // Generate side indices
+        for (let y = 0; y < heightSegments; y++) {
+            for (let x = 0; x < radialSegments; x++) {
+                const a = y * (radialSegments + 1) + x;
+                const b = a + radialSegments + 1;
+                const c = a + radialSegments + 2;
+                const d = a + 1;
+
+                indices.push(a, b, d);
+                indices.push(b, c, d);
+            }
+        }
+
+        if (!openEnded) {
+            // Bottom cap center vertex
+            const bottomCenterIndex = vertices.length / 3;
+            vertices.push(0, -height / 2, 0);
+
+            // Bottom cap vertices
+            for (let x = 0; x <= radialSegments; x++) {
+                const u = x / radialSegments;
+                const theta = u * Math.PI * 2;
+                vertices.push(
+                    radius * Math.cos(theta),
+                    -height / 2,
+                    radius * Math.sin(theta)
+                );
+            }
+
+            // Bottom cap indices
+            for (let x = 0; x < radialSegments; x++) {
+                const a = bottomCenterIndex;
+                const b = bottomCenterIndex + 1 + x;
+                const c = bottomCenterIndex + 1 + x + 1;
+                indices.push(a, c, b);
+            }
+
+            // Top cap center vertex
+            const topCenterIndex = vertices.length / 3;
+            vertices.push(0, height / 2, 0);
+
+            // Top cap vertices
+            for (let x = 0; x <= radialSegments; x++) {
+                const u = x / radialSegments;
+                const theta = u * Math.PI * 2;
+                vertices.push(
+                    radius * Math.cos(theta),
+                    height / 2,
+                    radius * Math.sin(theta)
+                );
+            }
+
+            // Top cap indices
+            for (let x = 0; x < radialSegments; x++) {
+                const a = topCenterIndex;
+                const b = topCenterIndex + 1 + x;
+                const c = topCenterIndex + 1 + x + 1;
+                indices.push(a, b, c);
+            }
+        }
+
+        const cylinderObject = new SceneObject({
+            id: `cylinder-${Date.now()}`,
+            name: `Cylinder-${Date.now()}`,
+            vertices: Array.from({ length: vertices.length / 3 }, (_, i) => ({
+                x: vertices[i * 3 + 0],
+                y: vertices[i * 3 + 1],
+                z: vertices[i * 3 + 2],
+            })),
+            indices: indices,
+            position: { x: 0, y: 0, z: 0 },
+            rotation: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+            materialId: "default",
+        });
+
+        this.addObject(cylinderObject);
+        this.save();
+    }
+
+    async createPlane() {
+        // Plane parameters
+        const width = 1.0;
+        const height = 1.0;
+        const widthSegments = 1;
+        const heightSegments = 1;
+
+        const vertices: number[] = [];
+        const indices: number[] = [];
+
+        const halfWidth = width / 2;
+        const halfHeight = height / 2;
+
+        const gridX = widthSegments + 1;
+        const gridY = heightSegments + 1;
+
+        const segmentWidth = width / widthSegments;
+        const segmentHeight = height / heightSegments;
+
+        // Generate vertices
+        for (let iy = 0; iy < gridY; iy++) {
+            const y = iy * segmentHeight - halfHeight;
+
+            for (let ix = 0; ix < gridX; ix++) {
+                const x = ix * segmentWidth - halfWidth;
+
+                vertices.push(x, y, 0);
+            }
+        }
+
+        // Generate indices
+        for (let iy = 0; iy < heightSegments; iy++) {
+            for (let ix = 0; ix < widthSegments; ix++) {
+                const a = ix + gridX * iy;
+                const b = ix + gridX * (iy + 1);
+                const c = ix + 1 + gridX * (iy + 1);
+                const d = ix + 1 + gridX * iy;
+
+                // Two triangles per quad
+                indices.push(a, b, d);
+                indices.push(b, c, d);
+            }
+        }
+
+        const planeObject = new SceneObject({
+            id: `plane-${Date.now()}`,
+            name: `Plane-${Date.now()}`,
+            vertices: Array.from({ length: vertices.length / 3 }, (_, i) => ({
+                x: vertices[i * 3 + 0],
+                y: vertices[i * 3 + 1],
+                z: vertices[i * 3 + 2],
+            })),
+            indices: indices,
+            position: { x: 0, y: 0, z: 0 },
+            rotation: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+            materialId: "default",
+        });
+
+        this.addObject(planeObject);
+        this.save();
     }
 }

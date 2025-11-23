@@ -14,46 +14,65 @@ export class SceneRepository {
                 getSceneObjects {
                     id
                     name
-                    vertices
+                    vertices {
+                        x
+                        y
+                        z
+                    }
                     indices
-                    position
-                    rotation
-                    scale
+                    position {
+                        x
+                        y
+                        z
+                    }
+                    rotation {
+                        x
+                        y
+                        z
+                    }
+                    scale {
+                        x
+                        y
+                        z
+                    }
                     materialId
                 }
             }
         `;
         const res = await apolloClient.query({ query });
-        return (res.data as { getSceneObjects: SceneObject[] }).getSceneObjects;
+        const data = (res.data as { getSceneObjects: any[] }).getSceneObjects;
+        console.log("[getSceneObjects] Raw data from server:", data);
+        if (data && data.length > 0) {
+            console.log("[getSceneObjects] First object:", data[0]);
+        }
+        return data.map((obj) => new SceneObject(obj));
     }
 
     async createSceneObject(obj: SceneObject) {
         const mutation = gql`
-            mutation createSceneObject($input: SceneObjectInput!) {
-                createSceneObject(input: $input) {
-                    id
-                }
+            mutation createSceneObject($object: SceneObjectInput!) {
+                createSceneObject(object: $object)
             }
         `;
+
         const result = await apolloClient.mutate({
             mutation,
-            variables: { input: obj.serialize() },
+            variables: { object: obj.serialize() },
         });
-        return (result.data as { createSceneObject: { id: string } })
-            .createSceneObject.id;
+        return (result.data as { createSceneObject: string }).createSceneObject;
     }
 
-    async removeSceneObject(id: string) {
+    async removeSceneObject(objectId: string) {
         const mutation = gql`
-            mutation removeSceneObject($id: ID!) {
-                removeSceneObject(id: $id) {
+            mutation removeSceneObject($objectId: String!) {
+                removeSceneObject(objectId: $objectId) {
                     acknowledged
                 }
             }
         `;
         const result = await apolloClient.mutate({
             mutation,
-            variables: { id },
+            variables: { objectId },
         });
         return (result.data as { removeSceneObject: { acknowledged: boolean } })
             .removeSceneObject.acknowledged;
@@ -66,7 +85,17 @@ export class SceneRepository {
                 getLights {
                     id
                     name
-                    color
+                    color {
+                        r
+                        g
+                        b
+                        a
+                    }
+                    position {
+                        x
+                        y
+                        z
+                    }
                     intensity
                     range
                     type
@@ -75,22 +104,23 @@ export class SceneRepository {
             }
         `;
         const res = await apolloClient.query({ query });
-        return (res.data as { getLights: Light[] }).getLights;
+        const data = (res.data as { getLights: any[] }).getLights;
+        return data.map((light) => new Light(light));
     }
 
     async createLight(light: Light) {
         const mutation = gql`
-            mutation createLight($input: LightInput!) {
-                createLight(input: $input) {
-                    acknowledged
-                }
+            mutation createLight($light: LightInput!) {
+                createLight(light: $light)
             }
         `;
+        // Deep clone to ensure no class instances remain
+        const cleanData = JSON.parse(JSON.stringify(light.serialize()));
         const result = await apolloClient.mutate({
             mutation,
-            variables: { input: light.serialize() },
+            variables: { light: cleanData },
         });
-        return (result.data as { createLight: { id: string } }).createLight.id;
+        return (result.data as { createLight: string }).createLight;
     }
 
     async removeLight(id: string) {
@@ -116,32 +146,42 @@ export class SceneRepository {
                 getMaterials {
                     id
                     name
-                    albedo
+                    albedo {
+                        r
+                        g
+                        b
+                        a
+                    }
                     metallic
                     roughness
                     ao
-                    emissive
+                    emissive {
+                        r
+                        g
+                        b
+                        a
+                    }
                 }
             }
         `;
         const res = await apolloClient.query({ query });
-        return (res.data as { getMaterials: Material[] }).getMaterials;
+        const data = (res.data as { getMaterials: any[] }).getMaterials;
+        return data.map((material) => new Material(material));
     }
 
     async createMaterial(material: Material) {
         const mutation = gql`
-            mutation createMaterial($input: MaterialInput!) {
-                createMaterial(input: $input) {
-                    acknowledged
-                }
+            mutation createMaterial($material: MaterialInput!) {
+                createMaterial(material: $material)
             }
         `;
+        // Deep clone to ensure no class instances remain
+        const cleanData = JSON.parse(JSON.stringify(material.serialize()));
         const result = await apolloClient.mutate({
             mutation,
-            variables: { input: material.serialize() },
+            variables: { material: cleanData },
         });
-        return (result.data as { createMaterial: { id: string } })
-            .createMaterial.id;
+        return (result.data as { createMaterial: string }).createMaterial;
     }
 
     async removeMaterial(id: string) {
@@ -164,8 +204,16 @@ export class SceneRepository {
         const query = gql`
             query getCamera {
                 getCamera {
-                    position
-                    rotation
+                    position {
+                        x
+                        y
+                        z
+                    }
+                    rotation {
+                        x
+                        y
+                        z
+                    }
                     fov
                     near
                     far
@@ -181,7 +229,12 @@ export class SceneRepository {
         const query = gql`
             query getAmbientLight {
                 getAmbientLight {
-                    color
+                    color {
+                        r
+                        g
+                        b
+                        a
+                    }
                     intensity
                     colorMultiplier
                 }

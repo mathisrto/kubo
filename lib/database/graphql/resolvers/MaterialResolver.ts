@@ -27,6 +27,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 return await getMaterialById(uid, id);
             }
         ),
@@ -37,6 +40,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 return await getMaterialName(uid, id);
             }
         ),
@@ -47,6 +53,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 return await getMaterialAlbedo(uid, id);
             }
         ),
@@ -57,6 +66,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 return await getMaterialMetallic(uid, id);
             }
         ),
@@ -67,6 +79,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 return await getMaterialRoughness(uid, id);
             }
         ),
@@ -77,6 +92,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 return await getMaterialAO(uid, id);
             }
         ),
@@ -87,6 +105,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 return await getMaterialEmissive(uid, id);
             }
         ),
@@ -99,6 +120,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 const acknowledged = await updateMaterialName(uid, id, name);
                 return { acknowledged };
             }
@@ -110,6 +134,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 const acknowledged = await updateMaterialAlbedo(
                     uid,
                     id,
@@ -125,6 +152,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 const acknowledged = await updateMaterialMetallic(
                     uid,
                     id,
@@ -140,6 +170,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 const acknowledged = await updateMaterialRoughness(
                     uid,
                     id,
@@ -155,6 +188,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 const acknowledged = await updateMaterialAO(uid, id, ao);
                 return { acknowledged };
             }
@@ -166,6 +202,9 @@ export const materialResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("Material ID is required");
+                }
                 const acknowledged = await updateMaterialEmissive(
                     uid,
                     id,

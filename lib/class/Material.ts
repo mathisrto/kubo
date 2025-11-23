@@ -55,6 +55,9 @@ export class Material extends ModelClass {
 
     constructor(material: MaterialType) {
         super();
+        if (material.id) {
+            this._id = material.id;
+        }
         this._name = material.name;
         this._albedo = new Color(material.albedo);
         this._metallic = material.metallic;
@@ -209,9 +212,9 @@ export class Material extends ModelClass {
      *
      * @returns {MaterialType} The serialized representation of the material, including its properties such as name, albedo, metallic, roughness, ambient occlusion (ao), and emissive.
      */
-    serialize(): MaterialType {
+    serialize(): any {
+        // Never include id in serialization - it's not part of MaterialInput
         return {
-            id: this.id,
             name: this.name,
             albedo: this.albedo.serialize(),
             metallic: this.metallic,
@@ -238,35 +241,41 @@ export class Material extends ModelClass {
     async save(): Promise<void> {
         if (this.countDirtyFields() === 0) return;
 
+        // Can only save updates if material has an ID (i.e., it exists on the server)
+        if (!this._id) {
+            console.warn("Cannot save Material without an ID");
+            return;
+        }
+
         if (this.dirtyFields.has("name")) {
-            await this.repository.updateMaterialName(this.id, this.name);
+            await this.repository.updateMaterialName(this._id, this.name);
         }
 
         if (this.dirtyFields.has("albedo")) {
-            await this.repository.updateMaterialAlbedo(this.id, this.albedo);
+            await this.repository.updateMaterialAlbedo(this._id, this.albedo);
         }
 
         if (this.dirtyFields.has("metallic")) {
             await this.repository.updateMaterialMetallic(
-                this.id,
+                this._id,
                 this.metallic
             );
         }
 
         if (this.dirtyFields.has("roughness")) {
             await this.repository.updateMaterialRoughness(
-                this.id,
+                this._id,
                 this.roughness
             );
         }
 
         if (this.dirtyFields.has("ao")) {
-            await this.repository.updateMaterialAO(this.id, this.ao);
+            await this.repository.updateMaterialAO(this._id, this.ao);
         }
 
         if (this.dirtyFields.has("emissive")) {
             await this.repository.updateMaterialEmissive(
-                this.id,
+                this._id,
                 this.emissive
             );
         }

@@ -12,8 +12,8 @@ import {
     updateSceneObjectRotation,
     updateSceneObjectScale,
 } from "@/lib/database/models/SceneObjectModel";
-import { ContextType } from "@/lib/types";
 import { requireAuth } from "@/lib/helpers";
+import { ContextType } from "@/lib/types";
 
 export const sceneObjectResolvers = {
     Query: {
@@ -24,6 +24,9 @@ export const sceneObjectResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("SceneObject ID is required");
+                }
                 return await getSceneObjectById(uid, id);
             }
         ),
@@ -34,6 +37,9 @@ export const sceneObjectResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("SceneObject ID is required");
+                }
                 return await getSceneObjectName(uid, id);
             }
         ),
@@ -44,6 +50,9 @@ export const sceneObjectResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("SceneObject ID is required");
+                }
                 return await getSceneObjectPosition(uid, id);
             }
         ),
@@ -54,6 +63,9 @@ export const sceneObjectResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("SceneObject ID is required");
+                }
                 return await getSceneObjectRotation(uid, id);
             }
         ),
@@ -64,6 +76,9 @@ export const sceneObjectResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("SceneObject ID is required");
+                }
                 return await getSceneObjectScale(uid, id);
             }
         ),
@@ -74,6 +89,9 @@ export const sceneObjectResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("SceneObject ID is required");
+                }
                 return await getSceneObjectMaterialId(uid, id);
             }
         ),
@@ -86,6 +104,9 @@ export const sceneObjectResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("SceneObject ID is required");
+                }
                 const acknowledged = await updateSceneObjectName(uid, id, name);
                 return { acknowledged };
             }
@@ -97,6 +118,9 @@ export const sceneObjectResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("SceneObject ID is required");
+                }
                 const acknowledged = await updateSceneObjectPosition(
                     uid,
                     id,
@@ -112,6 +136,9 @@ export const sceneObjectResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("SceneObject ID is required");
+                }
                 const acknowledged = await updateSceneObjectRotation(
                     uid,
                     id,
@@ -127,6 +154,9 @@ export const sceneObjectResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("SceneObject ID is required");
+                }
                 const acknowledged = await updateSceneObjectScale(
                     uid,
                     id,
@@ -142,6 +172,9 @@ export const sceneObjectResolvers = {
                 context: ContextType
             ) => {
                 const uid = context.uid;
+                if (!id) {
+                    throw new Error("SceneObject ID is required");
+                }
                 const acknowledged = await updateSceneObjectMaterial(
                     uid,
                     id,

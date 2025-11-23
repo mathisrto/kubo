@@ -33,6 +33,8 @@ enum LightType {
 type SceneObject {
     id: String!
     name: String!
+    vertices: [Vector3!]!
+    indices: [Int!]!
     position: Vector3!
     rotation: Vector3!
     scale: Vector3!
@@ -102,6 +104,8 @@ input ColorInput {
 
 input SceneObjectInput {
     name: String!
+    vertices: [Vector3Input!]!
+    indices: [Int!]!
     position: Vector3Input!
     rotation: Vector3Input!
     scale: Vector3Input!

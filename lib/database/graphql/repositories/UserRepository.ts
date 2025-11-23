@@ -91,6 +91,12 @@ export class UserRepository {
                     objects {
                         id
                         name
+                        vertices {
+                            x
+                            y
+                            z
+                        }
+                        indices
                         position {
                             x
                             y

@@ -1,6 +1,6 @@
-import { Light } from "@/lib/class/Light";
-import { Material } from "@/lib/class/Material";
-import { SceneObject } from "@/lib/class/SceneObject";
+import { LightType } from "@/lib/class/Light";
+import { MaterialType } from "@/lib/class/Material";
+import { SceneObjectType } from "@/lib/class/SceneObject";
 import { getModelsCollection } from "@/lib/database/client";
 import { ObjectId } from "mongodb";
 
@@ -15,25 +15,24 @@ export async function getSceneObjects(uid: string) {
     return doc.scene.objects;
 }
 
-export async function createSceneObject(uid: string, object: SceneObject) {
+export async function createSceneObject(uid: string, object: SceneObjectType) {
     const col = await getModelsCollection();
     if (!col) return null;
 
-    if (!object.id) {
-        object.id = new ObjectId().toString();
-    }
+    // Generate ID without modifying the original object
+    const newId = new ObjectId().toString();
+    const objectWithId = { ...object, id: newId };
 
-    const serialized = object.serialize();
     const id = uid;
     await col.updateOne(
         { _id: id }, // directement l'ID utilisateur
         {
-            $push: { ["scene.objects"]: serialized },
+            $push: { ["scene.objects"]: objectWithId },
             $set: { "scene.updatedAt": new Date() },
         },
         { upsert: true } // au cas où la scène n'existe pas encore
     );
-    return serialized.id;
+    return newId;
 }
 
 export async function removeSceneObject(uid: string, objectId: string) {
@@ -61,25 +60,24 @@ export async function getLights(uid: string) {
     return doc.scene.lights;
 }
 
-export async function createLight(uid: string, light: Light) {
+export async function createLight(uid: string, light: LightType) {
     const col = await getModelsCollection();
     if (!col) return null;
 
-    if (!light.id) {
-        light.id = new ObjectId().toString();
-    }
+    // Generate ID without modifying the original object
+    const newId = new ObjectId().toString();
+    const lightWithId = { ...light, id: newId };
 
-    const serialized = light.serialize();
     const id = uid;
     await col.updateOne(
         { _id: id }, // directement l'ID utilisateur
         {
-            $push: { ["scene.lights"]: serialized },
+            $push: { ["scene.lights"]: lightWithId },
             $set: { "scene.updatedAt": new Date() },
         },
         { upsert: true } // au cas où la scène n'existe pas encore
     );
-    return serialized.id;
+    return newId;
 }
 
 export async function removeLight(uid: string, lightId: string) {
@@ -107,25 +105,24 @@ export async function getMaterials(uid: string) {
     return doc.scene.materials;
 }
 
-export async function createMaterial(uid: string, material: Material) {
+export async function createMaterial(uid: string, material: MaterialType) {
     const col = await getModelsCollection();
     if (!col) return null;
 
-    if (!material.id) {
-        material.id = new ObjectId().toString();
-    }
+    // Generate ID without modifying the original object
+    const newId = new ObjectId().toString();
+    const materialWithId = { ...material, id: newId };
 
-    const serialized = material.serialize();
     const id = uid;
     await col.updateOne(
         { _id: id }, // directement l'ID utilisateur
         {
-            $push: { ["scene.materials"]: serialized },
+            $push: { ["scene.materials"]: materialWithId },
             $set: { "scene.updatedAt": new Date() },
         },
         { upsert: true } // au cas où la scène n'existe pas encore
     );
-    return serialized.id;
+    return newId;
 }
 
 export async function removeMaterial(uid: string, materialId: string) {
