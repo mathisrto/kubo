@@ -313,29 +313,47 @@ export class SceneObject extends ModelClass {
             return;
         }
 
+        const promises = [];
+
         if (this.dirtyFields.has("name")) {
-            this.repository.updateSceneObjectName(this._id, this.name);
+            promises.push(
+                this.repository.updateSceneObjectName(this._id, this.name)
+            );
         }
         if (this.dirtyFields.has("position")) {
-            this.repository.updateSceneObjectPosition(
-                this._id,
-                this.positionVector
+            promises.push(
+                this.repository.updateSceneObjectPosition(
+                    this._id,
+                    this.positionVector.serialize()
+                )
             );
         }
         if (this.dirtyFields.has("rotation")) {
-            this.repository.updateSceneObjectRotation(
-                this._id,
-                this.rotationVector
+            promises.push(
+                this.repository.updateSceneObjectRotation(
+                    this._id,
+                    this.rotationVector.serialize()
+                )
             );
         }
         if (this.dirtyFields.has("scale")) {
-            this.repository.updateSceneObjectScale(this._id, this.scaleVector);
-        }
-        if (this.dirtyFields.has("materialId")) {
-            this.repository.updateSceneObjectMaterial(
-                this._id,
-                this.materialId
+            promises.push(
+                this.repository.updateSceneObjectScale(
+                    this._id,
+                    this.scaleVector.serialize()
+                )
             );
         }
+        if (this.dirtyFields.has("materialId")) {
+            promises.push(
+                this.repository.updateSceneObjectMaterial(
+                    this._id,
+                    this.materialId
+                )
+            );
+        }
+
+        await Promise.all(promises);
+        this.clearDirtyFields();
     }
 }

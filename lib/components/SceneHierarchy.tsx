@@ -9,7 +9,7 @@ interface SceneHierarchyProps {
     scene: Scene | null;
     isLoading: boolean;
     selectedObject: string | null;
-    onSelectObject: (objId: string) => void;
+    onSelectObject: (objId: string | null) => void;
     updateScene: () => void;
 }
 
@@ -59,7 +59,23 @@ export const SceneHierarchy = ({
                                             📦 {obj.name || `Object ${idx + 1}`}
                                             <TrashIcon
                                                 className="w-4 h-auto"
-                                                onClick={() => {
+                                                onClick={async (e) => {
+                                                    e.stopPropagation(); // Prevent selecting the object
+                                                    // Deselect FIRST if the deleted object was selected
+                                                    if (
+                                                        selectedObject ===
+                                                        obj.id
+                                                    ) {
+                                                        onSelectObject(null);
+                                                        // Wait for React to process the state change
+                                                        await new Promise(
+                                                            (resolve) =>
+                                                                setTimeout(
+                                                                    resolve,
+                                                                    0
+                                                                )
+                                                        );
+                                                    }
                                                     scene.removeObject(obj.id);
                                                     scene.save();
                                                     updateScene();

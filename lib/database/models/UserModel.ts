@@ -7,8 +7,6 @@ export async function createOrResetScene(uid: string) {
     const col = await getModelsCollection();
     if (!col) return null;
     const id = uid;
-    console.log("id", id);
-    console.log("uid", uid);
     const result = await col.updateOne(
         { _id: id },
         {
@@ -20,6 +18,7 @@ export async function createOrResetScene(uid: string) {
                     camera: {
                         position: { x: 0, y: 0, z: 5 },
                         rotation: { x: 0, y: 0, z: 0 },
+                        target: { x: 0, y: 0, z: 0 },
                         fov: 75,
                         near: 0.1,
                         far: 1000,
@@ -51,8 +50,6 @@ export async function getScene(uid: string) {
     const col = await getModelsCollection();
     if (!col) return null;
     const id = uid;
-    console.log("id", id);
-    console.log("uid", uid);
     const doc = await col.findOne({ _id: id });
     return doc?.scene || null;
 }

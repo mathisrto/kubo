@@ -39,12 +39,12 @@ export class SceneRepository {
                 }
             }
         `;
-        const res = await apolloClient.query({ query });
+        // Force network request to avoid stale cache
+        const res = await apolloClient.query({
+            query,
+            fetchPolicy: "network-only",
+        });
         const data = (res.data as { getSceneObjects: any[] }).getSceneObjects;
-        console.log("[getSceneObjects] Raw data from server:", data);
-        if (data && data.length > 0) {
-            console.log("[getSceneObjects] First object:", data[0]);
-        }
         return data.map((obj) => new SceneObject(obj));
     }
 
@@ -103,7 +103,11 @@ export class SceneRepository {
                 }
             }
         `;
-        const res = await apolloClient.query({ query });
+        // Force network request to avoid stale cache
+        const res = await apolloClient.query({
+            query,
+            fetchPolicy: "network-only",
+        });
         const data = (res.data as { getLights: any[] }).getLights;
         return data.map((light) => new Light(light));
     }
@@ -125,7 +129,7 @@ export class SceneRepository {
 
     async removeLight(id: string) {
         const mutation = gql`
-            mutation removeLight($id: ID!) {
+            mutation removeLight($id: String!) {
                 removeLight(id: $id) {
                     acknowledged
                 }
@@ -164,7 +168,11 @@ export class SceneRepository {
                 }
             }
         `;
-        const res = await apolloClient.query({ query });
+        // Force network request to avoid stale cache
+        const res = await apolloClient.query({
+            query,
+            fetchPolicy: "network-only",
+        });
         const data = (res.data as { getMaterials: any[] }).getMaterials;
         return data.map((material) => new Material(material));
     }
@@ -186,7 +194,7 @@ export class SceneRepository {
 
     async removeMaterial(id: string) {
         const mutation = gql`
-            mutation removeMaterial($id: ID!) {
+            mutation removeMaterial($id: String!) {
                 removeMaterial(id: $id) {
                     acknowledged
                 }

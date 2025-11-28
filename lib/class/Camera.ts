@@ -8,6 +8,7 @@ import { Vector3, Vector3Type } from "./Vector3";
  *
  * @property position - The position of the camera in 3D space.
  * @property rotation - The rotation of the camera in 3D space.
+ * @property target - The point the camera is looking at (for OrbitControls).
  * @property fov - Field of view of the camera, in degrees.
  * @property near - The near clipping plane distance.
  * @property far - The far clipping plane distance.
@@ -16,6 +17,7 @@ import { Vector3, Vector3Type } from "./Vector3";
 export type CameraType = {
     position: Vector3Type;
     rotation: Vector3Type;
+    target: Vector3Type;
     fov: number;
     near: number;
     far: number;
@@ -46,6 +48,7 @@ export type CameraType = {
 export class Camera extends ModelClass {
     private _position: Vector3;
     private _rotation: Vector3;
+    private _target: Vector3;
     private _fov: CameraType["fov"];
     private _near: CameraType["near"];
     private _far: CameraType["far"];
@@ -62,6 +65,7 @@ export class Camera extends ModelClass {
         super();
         this._position = new Vector3(camera.position);
         this._rotation = new Vector3(camera.rotation);
+        this._target = new Vector3(camera.target || { x: 0, y: 0, z: 0 });
         this._fov = camera.fov;
         this._near = camera.near;
         this._far = camera.far;
@@ -88,6 +92,15 @@ export class Camera extends ModelClass {
      */
     get rotation(): Camera["_rotation"] {
         return this._rotation;
+    }
+
+    /**
+     * Gets the current target (look-at point) of the camera.
+     *
+     * @returns The camera's target, represented by the `_target` property.
+     */
+    get target(): Camera["_target"] {
+        return this._target;
     }
 
     /**
@@ -150,6 +163,16 @@ export class Camera extends ModelClass {
     set rotation(rotation: CameraType["rotation"]) {
         this._rotation = new Vector3(rotation);
         this.markFieldDirty("rotation");
+    }
+
+    /**
+     * Sets the camera's target (look-at point).
+     *
+     * @param target - The target value to set for the camera.
+     */
+    set target(target: CameraType["target"]) {
+        this._target = new Vector3(target);
+        this.markFieldDirty("target");
     }
 
     /**
@@ -256,6 +279,7 @@ export class Camera extends ModelClass {
         return {
             position: this.position.serialize(),
             rotation: this.rotation.serialize(),
+            target: this.target.serialize(),
             fov: this.fov,
             near: this.near,
             far: this.far,
@@ -269,27 +293,46 @@ export class Camera extends ModelClass {
      * @returns {Promise<void>} A promise that resolves when the save operation is complete.
      */
     async save(): Promise<void> {
-        if (this.countDirtyFields() === 0) return;
+        const dirtyCount = this.countDirtyFields();
+        if (dirtyCount === 0) return;
+
+        console.log(
+            `[Camera Save] Saving ${dirtyCount} dirty fields:`,
+            Array.from(this.dirtyFields)
+        );
+
+        const promises = [];
 
         if (this.dirtyFields.has("position")) {
-            await this.repository.updateCameraPosition(this.position);
+            promises.push(
+                this.repository.updateCameraPosition(this.position.serialize())
+            );
         }
         if (this.dirtyFields.has("rotation")) {
-            await this.repository.updateCameraRotation(this.rotation);
+            promises.push(
+                this.repository.updateCameraRotation(this.rotation.serialize())
+            );
+        }
+        if (this.dirtyFields.has("target")) {
+            promises.push(
+                this.repository.updateCameraTarget(this.target.serialize())
+            );
         }
         if (this.dirtyFields.has("fov")) {
-            await this.repository.updateCameraFOV(this.fov);
+            promises.push(this.repository.updateCameraFOV(this.fov));
         }
         if (this.dirtyFields.has("near")) {
-            await this.repository.updateCameraNear(this.near);
+            promises.push(this.repository.updateCameraNear(this.near));
         }
         if (this.dirtyFields.has("far")) {
-            this.repository.updateCameraFar(this.far);
+            promises.push(this.repository.updateCameraFar(this.far));
         }
         if (this.dirtyFields.has("type")) {
-            await this.repository.updateCameraType(this.type);
+            promises.push(this.repository.updateCameraType(this.type));
         }
 
-        this.dirtyFields.clear();
+        await Promise.all(promises);
+        this.clearDirtyFields();
+        console.log("[Camera Save] Save completed");
     }
 }

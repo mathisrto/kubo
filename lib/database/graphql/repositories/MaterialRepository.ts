@@ -154,7 +154,7 @@ export class MaterialRepository {
     async updateMaterialName(id: string, name: string): Promise<boolean> {
         // Implement GraphQL mutation for updating material name
         const mutation = gql`
-            mutation updateMaterialName($id: ID!, $name: String!) {
+            mutation updateMaterialName($id: String!, $name: String!) {
                 updateMaterialName(id: $id, name: $name) {
                     acknowledged
                 }
@@ -177,7 +177,7 @@ export class MaterialRepository {
     ): Promise<boolean> {
         // Implement GraphQL mutation for updating material albedo
         const mutation = gql`
-            mutation updateMaterialAlbedo($id: ID!, $albedo: ColorInput!) {
+            mutation updateMaterialAlbedo($id: String!, $albedo: ColorInput!) {
                 updateMaterialAlbedo(id: $id, albedo: $albedo) {
                     acknowledged
                 }
@@ -200,7 +200,7 @@ export class MaterialRepository {
     ): Promise<boolean> {
         // Implement GraphQL mutation for updating material metallic
         const mutation = gql`
-            mutation updateMaterialMetallic($id: ID!, $metallic: Float!) {
+            mutation updateMaterialMetallic($id: String!, $metallic: Float!) {
                 updateMaterialMetallic(id: $id, metallic: $metallic) {
                     acknowledged
                 }
@@ -223,7 +223,7 @@ export class MaterialRepository {
     ): Promise<boolean> {
         // Implement GraphQL mutation for updating material roughness
         const mutation = gql`
-            mutation updateMaterialRoughness($id: ID!, $roughness: Float!) {
+            mutation updateMaterialRoughness($id: String!, $roughness: Float!) {
                 updateMaterialRoughness(id: $id, roughness: $roughness) {
                     acknowledged
                 }
@@ -243,7 +243,7 @@ export class MaterialRepository {
     async updateMaterialAO(id: string, ao: number): Promise<boolean> {
         // Implement GraphQL mutation for updating material ambient occlusion
         const mutation = gql`
-            mutation updateMaterialAO($id: ID!, $ao: Float!) {
+            mutation updateMaterialAO($id: String!, $ao: Float!) {
                 updateMaterialAO(id: $id, ao: $ao) {
                     acknowledged
                 }
@@ -266,7 +266,10 @@ export class MaterialRepository {
     ): Promise<boolean> {
         // Implement GraphQL mutation for updating material emissive
         const mutation = gql`
-            mutation updateMaterialEmissive($id: ID!, $emissive: ColorInput!) {
+            mutation updateMaterialEmissive(
+                $id: String!
+                $emissive: ColorInput!
+            ) {
                 updateMaterialEmissive(id: $id, emissive: $emissive) {
                     acknowledged
                 }

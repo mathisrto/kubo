@@ -37,9 +37,6 @@ const DashboardPage = () => {
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = () => {
-            console.log("Imported file contents:", reader.result);
-        };
         reader.readAsText(file);
     };
 
@@ -138,18 +135,22 @@ const DashboardPage = () => {
                             <CreateObjectsPanel
                                 onCreateCube={async () => {
                                     await scene?.createCube();
+                                    await scene?.save();
                                     updateScene();
                                 }}
                                 onCreateSphere={async () => {
                                     await scene?.createSphere();
+                                    await scene?.save();
                                     updateScene();
                                 }}
                                 onCreateCylinder={async () => {
                                     await scene?.createCylinder();
+                                    await scene?.save();
                                     updateScene();
                                 }}
                                 onCreatePlane={async () => {
                                     await scene?.createPlane();
+                                    await scene?.save();
                                     updateScene();
                                 }}
                             />

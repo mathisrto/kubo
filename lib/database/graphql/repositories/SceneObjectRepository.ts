@@ -6,7 +6,7 @@ import { apolloClient } from "../client";
 export class SceneObjectRepository {
     async getSceneObjectById(id: string): Promise<SceneObjectType | null> {
         const query = gql`
-            query getSceneObjectById($id: ID!) {
+            query getSceneObjectById($id: String!) {
                 getSceneObjectById(id: $id) {
                     id
                     name
@@ -41,7 +41,7 @@ export class SceneObjectRepository {
 
     async getSceneObjectName(id: string): Promise<string | null> {
         const query = gql`
-            query getSceneObjectName($id: ID!) {
+            query getSceneObjectName($id: String!) {
                 getSceneObjectName(id: $id)
             }
         `;
@@ -57,7 +57,7 @@ export class SceneObjectRepository {
 
     async getSceneObjectPosition(id: string): Promise<Vector3Type | null> {
         const query = gql`
-            query getSceneObjectPosition($id: ID!) {
+            query getSceneObjectPosition($id: String!) {
                 getSceneObjectPosition(id: $id) {
                     x
                     y
@@ -77,7 +77,7 @@ export class SceneObjectRepository {
 
     async getSceneObjectRotation(id: string): Promise<Vector3Type | null> {
         const query = gql`
-            query getSceneObjectRotation($id: ID!) {
+            query getSceneObjectRotation($id: String!) {
                 getSceneObjectRotation(id: $id) {
                     x
                     y
@@ -97,7 +97,7 @@ export class SceneObjectRepository {
 
     async getSceneObjectScale(id: string): Promise<Vector3Type | null> {
         const query = gql`
-            query getSceneObjectScale($id: ID!) {
+            query getSceneObjectScale($id: String!) {
                 getSceneObjectScale(id: $id) {
                     x
                     y
@@ -117,7 +117,7 @@ export class SceneObjectRepository {
 
     async getSceneObjectMaterialId(id: string): Promise<string | null> {
         const query = gql`
-            query getSceneObjectMaterialId($id: ID!) {
+            query getSceneObjectMaterialId($id: String!) {
                 getSceneObjectMaterialId(id: $id)
             }
         `;
@@ -133,7 +133,7 @@ export class SceneObjectRepository {
 
     async updateSceneObjectName(id: string, name: string): Promise<boolean> {
         const mutation = gql`
-            mutation updateSceneObjectName($id: ID!, $name: String!) {
+            mutation updateSceneObjectName($id: String!, $name: String!) {
                 updateSceneObjectName(id: $id, name: $name) {
                     acknowledged
                 }
@@ -156,7 +156,7 @@ export class SceneObjectRepository {
     ): Promise<boolean> {
         const mutation = gql`
             mutation updateSceneObjectPosition(
-                $id: ID!
+                $id: String!
                 $position: Vector3Input!
             ) {
                 updateSceneObjectPosition(id: $id, position: $position) {
@@ -181,7 +181,7 @@ export class SceneObjectRepository {
     ): Promise<boolean> {
         const mutation = gql`
             mutation updateSceneObjectRotation(
-                $id: ID!
+                $id: String!
                 $rotation: Vector3Input!
             ) {
                 updateSceneObjectRotation(id: $id, rotation: $rotation) {
@@ -205,7 +205,10 @@ export class SceneObjectRepository {
         scale: Vector3Type
     ): Promise<boolean> {
         const mutation = gql`
-            mutation updateSceneObjectScale($id: ID!, $scale: Vector3Input!) {
+            mutation updateSceneObjectScale(
+                $id: String!
+                $scale: Vector3Input!
+            ) {
                 updateSceneObjectScale(id: $id, scale: $scale) {
                     acknowledged
                 }
@@ -225,7 +228,10 @@ export class SceneObjectRepository {
         materialId: string
     ): Promise<boolean> {
         const mutation = gql`
-            mutation updateSceneObjectMaterial($id: ID!, $materialId: ID!) {
+            mutation updateSceneObjectMaterial(
+                $id: String!
+                $materialId: String!
+            ) {
                 updateSceneObjectMaterial(id: $id, materialId: $materialId) {
                     acknowledged
                 }

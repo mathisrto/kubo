@@ -84,6 +84,7 @@ export class Scene extends ModelClass {
     private _createdAt: Date;
 
     private repository = new SceneRepository();
+    private _isSaving = false; // Prevent concurrent saves
 
     /**
      * Initializes a new instance of the Scene class.
@@ -212,6 +213,17 @@ export class Scene extends ModelClass {
      * @param obj - The object to add, which can be either an existing `SceneObject` or a plain object compatible with `SceneType["objects"][number]`.
      */
     addObject(obj: Scene["_objects"][number]): void {
+        // Vérifier si un objet avec le même ID existe déjà (pour éviter les doublons en React Strict Mode)
+        const existingIndex = this.objects.findIndex(
+            (existing) => existing.id === obj.id
+        );
+        if (existingIndex !== -1) {
+            console.warn(
+                `[Scene.addObject] Object with id "${obj.id}" already exists, skipping`
+            );
+            return;
+        }
+
         this.objects.push(obj);
         this.markFieldDirty("objects");
     }
@@ -349,6 +361,19 @@ export class Scene extends ModelClass {
             .map((i) => i.id)
             .filter(Boolean) as string[];
 
+        console.log(
+            "[syncCollection] Current items:",
+            currentItems.length,
+            "ids:",
+            currentItems.map((i) => i.id)
+        );
+        console.log(
+            "[syncCollection] Existing on server:",
+            existingIds.length,
+            "ids:",
+            existingIds
+        );
+
         // Items without ID are new and need to be created
         const toCreate = currentItems.filter((i) => !i.id);
 
@@ -357,17 +382,38 @@ export class Scene extends ModelClass {
             (i) => i.id && !existingIds.includes(i.id)
         );
 
+        console.log("[syncCollection] To create (no ID):", toCreate.length);
+        console.log(
+            "[syncCollection] To create (temp ID):",
+            toCreateWithTempId.length,
+            "ids:",
+            toCreateWithTempId.map((i) => i.id)
+        );
+
         // Items that exist on server but not locally should be removed
         const currentIds = currentItems
             .map((i) => i.id)
             .filter(Boolean) as string[];
         const toRemove = existingIds.filter((id) => !currentIds.includes(id));
 
+        console.log(
+            "[syncCollection] To remove:",
+            toRemove.length,
+            "ids:",
+            toRemove
+        );
+
         // Create new items and update their IDs
         for (const item of [...toCreate, ...toCreateWithTempId]) {
+            const oldId = item.id;
             const newId = await createItem(item);
+            console.log(`[syncCollection] Created item: ${oldId} -> ${newId}`);
             // Update the item's ID with the server-generated one (access private field directly)
             (item as any)._id = newId;
+            // Clear dirty fields after creation to avoid re-creating on next save
+            if (typeof item.clearDirtyFields === "function") {
+                item.clearDirtyFields();
+            }
         }
 
         await Promise.all(toRemove.map(removeItem));
@@ -385,88 +431,117 @@ export class Scene extends ModelClass {
      * @returns {Promise<void>} A promise that resolves when the save operation is complete.
      */
     async save(): Promise<void> {
-        if (this.countDirtyFields() === 0) return;
+        // Prevent concurrent saves (race condition)
+        if (this._isSaving) {
+            console.log("[Scene.save] Already saving, skipping...");
+            return;
+        }
 
-        this._updatedAt = new Date();
-        // Graphql update date here
-
-        if (this.dirtyFields.has("objects")) {
-            await this.syncCollection(
-                this._objects,
-                async () => {
-                    console.log(
-                        "[Scene.save] Fetching existing scene objects..."
-                    );
-                    const objects = await this.repository.getSceneObjects();
-                    return objects;
-                },
-                async (obj) => {
-                    console.log("[Scene.save] Creating new scene object...");
-                    return await this.repository.createSceneObject(
-                        obj as SceneObject
-                    );
-                },
-                async (id) => {
-                    console.log(
-                        "[Scene.save] Removing scene object with id:",
-                        id
-                    );
-                    await this.repository.removeSceneObject(id);
+        this._isSaving = true;
+        try {
+            // Maintenant traiter les dirty fields de Scene elle-même
+            if (this.countDirtyFields() === 0) {
+                // Même si Scene n'a pas de dirty fields, sauvegarder les enfants modifiés
+                if (this._camera.countDirtyFields() > 0) {
+                    await this._camera.save();
                 }
-            );
-        }
-
-        if (this.dirtyFields.has("lights")) {
-            await this.syncCollection(
-                this._lights,
-                async () => {
-                    console.log("[Scene.save] Fetching existing lights...");
-                    const lights = await this.repository.getLights();
-                    return lights;
-                },
-                async (light) => {
-                    console.log("[Scene.save] Creating new light...");
-                    return await this.repository.createLight(light as Light);
-                },
-                async (id) => {
-                    console.log("[Scene.save] Removing light with id:", id);
-                    await this.repository.removeLight(id);
+                if (this._ambientLight.countDirtyFields() > 0) {
+                    await this._ambientLight.save();
                 }
-            );
-        }
-
-        if (this.dirtyFields.has("materials")) {
-            await this.syncCollection(
-                this._materials,
-                async () => {
-                    console.log("[Scene.save] Fetching existing materials...");
-                    const materials = await this.repository.getMaterials();
-                    return materials;
-                },
-                async (material) => {
-                    console.log("[Scene.save] Creating new material...");
-                    return await this.repository.createMaterial(
-                        material as Material
-                    );
-                },
-                async (id) => {
-                    console.log("[Scene.save] Removing material with id:", id);
-                    await this.repository.removeMaterial(id);
+                // Sauvegarder les objets qui ont des dirty fields
+                for (const obj of this._objects) {
+                    if (obj.countDirtyFields() > 0) {
+                        await obj.save();
+                    }
                 }
-            );
-        }
+                return;
+            }
 
-        if (this.dirtyFields.has("camera")) {
-            await this._camera.save();
-            this._camera.clearDirtyFields();
-        }
+            this._updatedAt = new Date();
+            // Graphql update date here
 
-        if (this.dirtyFields.has("ambientLight")) {
-            await this._ambientLight.save();
-            this._ambientLight.clearDirtyFields();
-        }
+            if (this.dirtyFields.has("objects")) {
+                await this.syncCollection(
+                    this._objects,
+                    async () => {
+                        console.log(
+                            "[Scene.save] Fetching existing scene objects..."
+                        );
+                        const objects = await this.repository.getSceneObjects();
+                        return objects;
+                    },
+                    async (obj) => {
+                        console.log(
+                            "[Scene.save] Creating new scene object..."
+                        );
+                        return await this.repository.createSceneObject(
+                            obj as SceneObject
+                        );
+                    },
+                    async (id) => {
+                        console.log(
+                            "[Scene.save] Removing scene object with id:",
+                            id
+                        );
+                        await this.repository.removeSceneObject(id);
+                    }
+                );
+            }
 
-        this.clearDirtyFields();
+            if (this.dirtyFields.has("lights")) {
+                await this.syncCollection(
+                    this._lights,
+                    async () => {
+                        console.log("[Scene.save] Fetching existing lights...");
+                        const lights = await this.repository.getLights();
+                        return lights;
+                    },
+                    async (light) => {
+                        console.log("[Scene.save] Creating new light...");
+                        return await this.repository.createLight(
+                            light as Light
+                        );
+                    },
+                    async (id) => {
+                        console.log("[Scene.save] Removing light with id:", id);
+                        await this.repository.removeLight(id);
+                    }
+                );
+            }
+
+            if (this.dirtyFields.has("materials")) {
+                await this.syncCollection(
+                    this._materials,
+                    async () => {
+                        console.log(
+                            "[Scene.save] Fetching existing materials..."
+                        );
+                        const materials = await this.repository.getMaterials();
+                        return materials;
+                    },
+                    async (material) => {
+                        console.log("[Scene.save] Creating new material...");
+                        return await this.repository.createMaterial(
+                            material as Material
+                        );
+                    },
+                    async (id) => {
+                        console.log(
+                            "[Scene.save] Removing material with id:",
+                            id
+                        );
+                        await this.repository.removeMaterial(id);
+                    }
+                );
+            }
+
+            // camera et ambientLight sont déjà sauvegardés au début
+            // (voir début de la méthode save())
+
+            this.clearDirtyFields();
+        } finally {
+            this._isSaving = false;
+        }
     }
 
     async createCube() {
@@ -552,7 +627,6 @@ export class Scene extends ModelClass {
         });
 
         this.addObject(cubeObject);
-        this.save();
     }
 
     async createSphere() {
@@ -698,7 +772,6 @@ export class Scene extends ModelClass {
         });
 
         this.addObject(sphereObject);
-        this.save();
     }
 
     async createCylinder() {
@@ -805,7 +878,6 @@ export class Scene extends ModelClass {
         });
 
         this.addObject(cylinderObject);
-        this.save();
     }
 
     async createPlane() {
@@ -868,6 +940,5 @@ export class Scene extends ModelClass {
         });
 
         this.addObject(planeObject);
-        this.save();
     }
 }

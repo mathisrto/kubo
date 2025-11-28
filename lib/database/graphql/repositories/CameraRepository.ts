@@ -43,6 +43,26 @@ export class CameraRepository {
         ).getCameraRotation;
     }
 
+    public async getCameraTarget(): Promise<Vector3Type> {
+        const query = gql`
+            query getCameraTarget {
+                getCameraTarget {
+                    x
+                    y
+                    z
+                }
+            }
+        `;
+        const result = await apolloClient.query({
+            query,
+        });
+        return (
+            result.data as {
+                getCameraTarget: Vector3Type;
+            }
+        ).getCameraTarget;
+    }
+
     public async getCameraFOV(): Promise<number> {
         const query = gql`
             query getCameraFOV {
@@ -143,6 +163,25 @@ export class CameraRepository {
                 updateCameraRotation: { acknowledged: boolean };
             }
         ).updateCameraRotation.acknowledged;
+    }
+
+    public async updateCameraTarget(target: Vector3Type): Promise<boolean> {
+        const mutation = gql`
+            mutation updateCameraTarget($target: Vector3Input!) {
+                updateCameraTarget(target: $target) {
+                    acknowledged
+                }
+            }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { target },
+        });
+        return (
+            result.data as {
+                updateCameraTarget: { acknowledged: boolean };
+            }
+        ).updateCameraTarget.acknowledged;
     }
 
     public async updateCameraFOV(fov: number): Promise<boolean> {

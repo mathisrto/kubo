@@ -16,6 +16,13 @@ export async function getCameraRotation(uid: string) {
     return doc?.scene.camera.rotation;
 }
 
+export async function getCameraTarget(uid: string) {
+    const col = await getModelsCollection();
+    if (!col) return null;
+    const doc = await col.findOne({ _id: uid });
+    return doc?.scene.camera.target;
+}
+
 export async function getCameraFOV(uid: string) {
     const col = await getModelsCollection();
     if (!col) return null;
@@ -67,6 +74,21 @@ export async function updateCameraRotation(uid: string, rotation: Vector3Type) {
         {
             $set: {
                 "scene.camera.rotation": rotation,
+                "scene.updatedAt": new Date(),
+            },
+        }
+    );
+    return result.acknowledged;
+}
+
+export async function updateCameraTarget(uid: string, target: Vector3Type) {
+    const col = await getModelsCollection();
+    if (!col) return null;
+    const result = await col.updateOne(
+        { _id: uid },
+        {
+            $set: {
+                "scene.camera.target": target,
                 "scene.updatedAt": new Date(),
             },
         }

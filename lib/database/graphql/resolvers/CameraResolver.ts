@@ -6,12 +6,14 @@ import {
     getCameraNear,
     getCameraPosition,
     getCameraRotation,
+    getCameraTarget,
     getCameraType,
     updateCameraFar,
     updateCameraFOV,
     updateCameraNear,
     updateCameraPosition,
     updateCameraRotation,
+    updateCameraTarget,
     updateCameraType,
 } from "@/lib/database/models/CameraModel";
 import { requireAuth } from "@/lib/helpers";
@@ -27,6 +29,11 @@ export const cameraResolvers = {
         getCameraRotation: requireAuth(
             async (_: unknown, __: object, context: ContextType) => {
                 return await getCameraRotation(context.uid);
+            }
+        ),
+        getCameraTarget: requireAuth(
+            async (_: unknown, __: object, context: ContextType) => {
+                return await getCameraTarget(context.uid);
             }
         ),
         getCameraFOV: requireAuth(
@@ -75,6 +82,20 @@ export const cameraResolvers = {
                 const acknowledged = await updateCameraRotation(
                     context.uid,
                     rotation
+                );
+
+                return { acknowledged };
+            }
+        ),
+        updateCameraTarget: requireAuth(
+            async (
+                _: unknown,
+                { target }: CameraType,
+                context: ContextType
+            ) => {
+                const acknowledged = await updateCameraTarget(
+                    context.uid,
+                    target
                 );
 
                 return { acknowledged };

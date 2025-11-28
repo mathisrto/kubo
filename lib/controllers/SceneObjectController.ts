@@ -56,18 +56,28 @@ export class SceneObjectController {
                 this.materialController = mc;
                 material = mc.getThreeMaterial() as THREE.Material;
             } else {
-                material = new THREE.MeshStandardMaterial({ color: 0xdddddd });
+                material = new THREE.MeshStandardMaterial({
+                    color: 0xdddddd,
+                    side: THREE.DoubleSide,
+                });
             }
         } else {
-            material = new THREE.MeshStandardMaterial({ color: 0xdddddd });
+            material = new THREE.MeshStandardMaterial({
+                color: 0xdddddd,
+                side: THREE.DoubleSide,
+            });
         }
 
         this.mesh = new THREE.Mesh(this.geometry, material);
 
-        // initial transform
+        // Initial transform
         this.updatePosition();
         this.updateRotation();
         this.updateScale();
+
+        // Update matrices after setting transform
+        this.mesh.updateMatrix();
+        this.mesh.updateMatrixWorld(true);
 
         // subscribe to model changes
         const unsubscribes: Array<() => void> = [];
@@ -100,24 +110,45 @@ export class SceneObjectController {
     }
 
     private updatePosition() {
+        // Skip updates during TransformControls drag
+        if ((this as any)._suspendUpdates) return;
+
         try {
             const p: any = this.appObject.positionVector;
-            this.mesh.position.set(p.x, p.y, p.z);
-        } catch (e) {}
+            this.mesh.position.set(p.x ?? 0, p.y ?? 0, p.z ?? 0);
+        } catch (e) {
+            this.mesh.position.set(0, 0, 0);
+        }
+        // Update matrices after position change
+        this.mesh.updateMatrix();
     }
 
     private updateRotation() {
+        // Skip updates during TransformControls drag
+        if ((this as any)._suspendUpdates) return;
+
         try {
             const r: any = this.appObject.rotationVector;
-            this.mesh.rotation.set(r.x, r.y, r.z);
-        } catch (e) {}
+            this.mesh.rotation.set(r.x ?? 0, r.y ?? 0, r.z ?? 0);
+        } catch (e) {
+            this.mesh.rotation.set(0, 0, 0);
+        }
+        // Update matrices after rotation change
+        this.mesh.updateMatrix();
     }
 
     private updateScale() {
+        // Skip updates during TransformControls drag
+        if ((this as any)._suspendUpdates) return;
+
         try {
             const s: any = this.appObject.scaleVector;
-            this.mesh.scale.set(s.x, s.y, s.z);
-        } catch (e) {}
+            this.mesh.scale.set(s.x ?? 1, s.y ?? 1, s.z ?? 1);
+        } catch (e) {
+            this.mesh.scale.set(1, 1, 1);
+        }
+        // Update matrices after scale change
+        this.mesh.updateMatrix();
     }
 
     private updateMaterial(
@@ -147,30 +178,56 @@ export class SceneObjectController {
         });
     }
 
-    // helpers (update model + mark dirty)
+    getPosition() {
+        return this.mesh.position;
+    }
+
+    getRotation() {
+        return this.mesh.rotation;
+    }
+
+    getScale() {
+        return this.mesh.scale;
+    }
+
+    /**
+     * Update position in the model (will trigger reactive update)
+     */
     setPosition(x: number, y: number, z: number) {
-        this.appObject.positionVector = { x, y, z } as any;
-        this.appObject.markFieldDirty?.("position");
-        this.updatePosition();
+        const pos = this.appObject.positionVector;
+        pos.x = x;
+        pos.y = y;
+        pos.z = z;
+        (this.appObject as any).markFieldDirty("position");
     }
 
+    /**
+     * Update rotation in the model (will trigger reactive update)
+     */
     setRotation(x: number, y: number, z: number) {
-        this.appObject.rotationVector = { x, y, z } as any;
-        this.appObject.markFieldDirty?.("rotation");
-        this.updateRotation();
+        const rot = this.appObject.rotationVector;
+        rot.x = x;
+        rot.y = y;
+        rot.z = z;
+        (this.appObject as any).markFieldDirty("rotation");
     }
 
+    /**
+     * Update scale in the model (will trigger reactive update)
+     */
     setScale(x: number, y: number, z: number) {
-        this.appObject.scaleVector = { x, y, z } as any;
-        this.appObject.markFieldDirty?.("scale");
-        this.updateScale();
+        const scale = this.appObject.scaleVector;
+        scale.x = x;
+        scale.y = y;
+        scale.z = z;
+        (this.appObject as any).markFieldDirty("scale");
     }
 
     setMaterialId(
         id: string,
         resolve?: (id: string) => MaterialController | undefined
     ) {
-        this.appObject.materialId = id as any;
+        this.appObject.materialId = id as string;
         this.appObject.markFieldDirty?.("materialId");
         this.updateMaterial(resolve);
     }

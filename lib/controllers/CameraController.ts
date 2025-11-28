@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { CAMERA_TYPES } from "../constants";
 
 export class CameraController {
-    private appCamera: AppCamera;
+    public appCamera: AppCamera;
     private threeCamera: THREE.Camera;
     private _unsubscribe?: () => void;
 
