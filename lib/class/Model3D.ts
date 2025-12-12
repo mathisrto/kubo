@@ -272,42 +272,52 @@ export class Model3D extends ModelClass {
      * Save changes to database
      */
     async save(): Promise<void> {
-        if (!this.countDirtyFields()) {
+        if (this.countDirtyFields() === 0) {
             console.log("⚠️ No changes to save for Model3D");
             return;
         }
 
+        // Can only save updates if model has an ID (i.e., it exists in the scene)
+        if (!this._id) {
+            console.warn(
+                "Cannot save Model3D without an ID. Use createModel3D mutation to create a new model."
+            );
+            return;
+        }
+
         if (this.dirtyFields.has("name")) {
-            this.repository.setName(this._id!, this._name);
+            await this.repository.updateModel3DName(this._id, this._name);
         }
         if (this.dirtyFields.has("fileId")) {
-            this.repository.setFileId(this._id!, this._fileId);
+            await this.repository.updateModel3DFileId(this._id, this._fileId);
         }
         if (this.dirtyFields.has("format")) {
-            this.repository.setFormat(this._id!, this._format);
+            await this.repository.updateModel3DFormat(this._id, this._format);
         }
         if (this.dirtyFields.has("position")) {
-            this.repository.setPosition(
-                this._id!,
+            await this.repository.updateModel3DPosition(
+                this._id,
                 this._positionVector.serialize()
             );
         }
         if (this.dirtyFields.has("rotation")) {
-            this.repository.setRotation(
-                this._id!,
+            await this.repository.updateModel3DRotation(
+                this._id,
                 this._rotationVector.serialize()
             );
         }
         if (this.dirtyFields.has("scale")) {
-            this.repository.setScale(this._id!, this._scaleVector.serialize());
+            await this.repository.updateModel3DScale(
+                this._id,
+                this._scaleVector.serialize()
+            );
         }
 
-        if (this.dirtyFields.has("materialId")) {
-            this.repository.setMaterialId(this._id!, this._materialId!);
-        }
-
-        if (this.dirtyFields.has("metadata")) {
-            this.repository.setMetadata(this._id!, this._metadata!);
+        if (this.dirtyFields.has("materialId") && this._materialId) {
+            await this.repository.updateModel3DMaterialId(
+                this._id,
+                this._materialId
+            );
         }
 
         this.dirtyFields.clear();

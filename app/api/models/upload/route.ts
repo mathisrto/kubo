@@ -1,4 +1,4 @@
-import { Model3D, MODEL_FILE_FORMAT } from "@/lib/class/Model3D";
+import { MODEL_FILE_FORMAT } from "@/lib/class/Model3D";
 import { GridFSService } from "@/lib/database/gridfs";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -90,32 +90,29 @@ export async function POST(request: NextRequest) {
             metadata
         );
 
-        // Create Model3D instance
-        const model = new Model3D({
-            name: name || file.name,
-            fileId,
-            format,
-            metadata,
-        });
+        if (!fileId) {
+            return NextResponse.json(
+                { error: "Failed to upload file to GridFS" },
+                { status: 500 }
+            );
+        }
 
-        // Save to database
-        await model.save();
-
+        // Return the uploaded file info
+        // Note: To create a Model3D in the scene, use the GraphQL createModel3D mutation
+        // This endpoint only handles file upload to GridFS
         return NextResponse.json(
             {
                 success: true,
-                model: {
-                    id: model.id,
-                    name: model.name,
-                    fileId: model.fileId,
-                    format: model.format,
-                    position: model.position,
-                    rotation: model.rotation,
-                    scale: model.scale,
-                    materialId: model.materialId,
-                    metadata: model.metadata,
-                    fileUrl: model.getFileUrl(),
+                file: {
+                    fileId,
+                    filename: file.name,
+                    format,
+                    size: file.size,
+                    metadata,
+                    downloadUrl: `/api/models/${fileId}`,
                 },
+                message:
+                    "File uploaded successfully. Use createModel3D mutation to add it to your scene.",
             },
             { status: 201 }
         );

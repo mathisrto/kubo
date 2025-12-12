@@ -2,24 +2,20 @@ import { AmbientLightType } from "@/lib/class/AmbientLight";
 import { CameraType } from "@/lib/class/Camera";
 import { Light } from "@/lib/class/Light";
 import { Material } from "@/lib/class/Material";
-import { SceneObject } from "@/lib/class/SceneObject";
+import { Model3D } from "@/lib/class/Model3D";
 import { gql } from "@apollo/client";
 import { apolloClient } from "../client";
 
 export class SceneRepository {
-    /* --------- OBJECTS --------- */
-    async getSceneObjects(): Promise<SceneObject[]> {
+    /* --------- MODEL3D --------- */
+    async getModel3Ds(): Promise<Model3D[]> {
         const query = gql`
-            query getSceneObjects {
-                getSceneObjects {
+            query getModel3Ds {
+                getModel3Ds {
                     id
                     name
-                    vertices {
-                        x
-                        y
-                        z
-                    }
-                    indices
+                    fileId
+                    format
                     position {
                         x
                         y
@@ -44,38 +40,46 @@ export class SceneRepository {
             query,
             fetchPolicy: "network-only",
         });
-        const data = (res.data as { getSceneObjects: any[] }).getSceneObjects;
-        return data.map((obj) => new SceneObject(obj));
+        const data = (res.data as { getModel3Ds: any[] }).getModel3Ds;
+        return data.map((model) => new Model3D(model));
     }
 
-    async createSceneObject(obj: SceneObject) {
+    async createModel3D(model: Model3D) {
         const mutation = gql`
-            mutation createSceneObject($object: SceneObjectInput!) {
-                createSceneObject(object: $object)
+            mutation createModel3D(
+                $name: String!
+                $fileId: String!
+                $format: ModelFileFormat!
+            ) {
+                createModel3D(name: $name, fileId: $fileId, format: $format)
             }
         `;
 
         const result = await apolloClient.mutate({
             mutation,
-            variables: { object: obj.serialize() },
+            variables: {
+                name: model.name,
+                fileId: model.fileId,
+                format: model.format,
+            },
         });
-        return (result.data as { createSceneObject: string }).createSceneObject;
+        return (result.data as { createModel3D: string }).createModel3D;
     }
 
-    async removeSceneObject(objectId: string) {
+    async removeModel3D(modelId: string) {
         const mutation = gql`
-            mutation removeSceneObject($objectId: String!) {
-                removeSceneObject(objectId: $objectId) {
+            mutation removeModel3D($modelId: String!) {
+                removeModel3D(modelId: $modelId) {
                     acknowledged
                 }
             }
         `;
         const result = await apolloClient.mutate({
             mutation,
-            variables: { objectId },
+            variables: { modelId },
         });
-        return (result.data as { removeSceneObject: { acknowledged: boolean } })
-            .removeSceneObject.acknowledged;
+        return (result.data as { removeModel3D: { acknowledged: boolean } })
+            .removeModel3D.acknowledged;
     }
 
     /* --------- LIGHTS --------- */

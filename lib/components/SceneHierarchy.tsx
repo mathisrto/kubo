@@ -48,23 +48,26 @@ export const SceneHierarchy = ({
                                         💡 {light.name || `Light ${idx + 1}`}
                                     </li>
                                 ))}
-                                {scene.objects.map((obj, idx) => (
+                                {scene.models3d.map((model, idx) => (
                                     <li
-                                        key={`obj-${idx}`}
+                                        key={`model-${idx}`}
                                         className="cursor-pointer hover:text-primary text-sm"
-                                        onClick={() => onSelectObject(obj.id)}
+                                        onClick={() =>
+                                            onSelectObject(model.id || null)
+                                        }
                                     >
                                         <div className="flex justify-between items-center">
                                             {" "}
-                                            📦 {obj.name || `Object ${idx + 1}`}
+                                            🎨{" "}
+                                            {model.name || `Model ${idx + 1}`}
                                             <TrashIcon
                                                 className="w-4 h-auto"
                                                 onClick={async (e) => {
-                                                    e.stopPropagation(); // Prevent selecting the object
-                                                    // Deselect FIRST if the deleted object was selected
+                                                    e.stopPropagation(); // Prevent selecting the model
+                                                    // Deselect FIRST if the deleted model was selected
                                                     if (
                                                         selectedObject ===
-                                                        obj.id
+                                                        model.id
                                                     ) {
                                                         onSelectObject(null);
                                                         // Wait for React to process the state change
@@ -76,9 +79,13 @@ export const SceneHierarchy = ({
                                                                 )
                                                         );
                                                     }
-                                                    scene.removeObject(obj.id);
-                                                    scene.save();
-                                                    updateScene();
+                                                    if (model.id) {
+                                                        scene.removeModel(
+                                                            model.id
+                                                        );
+                                                        scene.save();
+                                                        updateScene();
+                                                    }
                                                 }}
                                             />
                                         </div>

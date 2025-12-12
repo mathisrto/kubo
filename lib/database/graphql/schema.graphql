@@ -31,7 +31,27 @@ enum LightType {
     spot
 }
 
+enum ModelFileFormat {
+    GLTF
+    GLB
+    OBJ
+    FBX
+    STL
+    PLY
+}
+
 # Types principaux
+
+type Model3D {
+    id: String!
+    name: String!
+    fileId: String!
+    format: ModelFileFormat!
+    position: Vector3!
+    rotation: Vector3!
+    scale: Vector3!
+    materialId: String
+}
 
 type SceneObject {
     id: String!
@@ -171,6 +191,16 @@ type Query {
     getMaterialAO(id: String!): Float
     getMaterialEmissive(id: String!): Color
     getMaterials: [Material!]!
+    # Model3D
+    getModel3DById(id: String!): Model3D
+    getModel3DName(id: String!): String
+    getModel3DFileId(id: String!): String
+    getModel3DFormat(id: String!): ModelFileFormat
+    getModel3DPosition(id: String!): Vector3
+    getModel3DRotation(id: String!): Vector3
+    getModel3DScale(id: String!): Vector3
+    getModel3DMaterialId(id: String!): String
+    getModel3Ds: [Model3D!]!
     # SceneObject
     getSceneObjectById(id: String!): SceneObject
     getSceneObjectName(id: String!): String
@@ -221,6 +251,20 @@ type Mutation {
     updateMaterialEmissive(id: String!, emissive: ColorInput!): MutationResult!
     createMaterial(material: MaterialInput!): String!
     removeMaterial(materialId: String!): MutationResult!
+    # Model3D
+    updateModel3DName(id: String!, name: String!): MutationResult!
+    updateModel3DFileId(id: String!, fileId: String!): MutationResult!
+    updateModel3DFormat(id: String!, format: ModelFileFormat!): MutationResult!
+    updateModel3DPosition(id: String!, position: Vector3Input!): MutationResult!
+    updateModel3DRotation(id: String!, rotation: Vector3Input!): MutationResult!
+    updateModel3DScale(id: String!, scale: Vector3Input!): MutationResult!
+    updateModel3DMaterialId(id: String!, materialId: String!): MutationResult!
+    createModel3D(
+        name: String!
+        fileId: String!
+        format: ModelFileFormat!
+    ): String!
+    removeModel3D(modelId: String!): MutationResult!
     # SceneObject
     updateSceneObjectName(id: String!, name: String!): MutationResult!
     updateSceneObjectPosition(

@@ -3,13 +3,13 @@ import { AmbientLight, AmbientLightType } from "./AmbientLight";
 import { Camera, CameraType } from "./Camera";
 import { Light, LightType } from "./Light";
 import { Material, MaterialType } from "./Material";
+import { Model3D, Model3DType } from "./Model3D";
 import { ModelClass } from "./ModelClass";
-import { SceneObject, SceneObjectType } from "./SceneObject";
 
 /**
- * Represents a scene containing objects, camera, lights, and ambient light settings.
+ * Represents a scene containing 3D models, camera, lights, and ambient light settings.
  *
- * @property {SceneObjectType[]} objects - Array of objects present in the scene.
+ * @property {Model3DType[]} models3d - Array of 3D models (file-based) in the scene.
  * @property {CameraType} camera - Camera configuration for the scene.
  * @property {LightType[]} lights - Array of lights illuminating the scene.
  * @property {AmbientLightType} ambientLight - Ambient light for the scene.
@@ -17,7 +17,7 @@ import { SceneObject, SceneObjectType } from "./SceneObject";
  * @property {Date} createdAt - The date and time when the scene was created.
  */
 export type SceneType = {
-    objects: SceneObjectType[];
+    models3d: Model3DType[];
     camera: CameraType;
     lights: LightType[];
     ambientLight: AmbientLightType;
@@ -75,7 +75,7 @@ type CollectionType = {
  * Serializes the scene into a `SceneType` object.
  */
 export class Scene extends ModelClass {
-    private _objects: SceneObject[];
+    private _models3d: Model3D[];
     private _camera: Camera;
     private _lights: Light[];
     private _ambientLight: AmbientLight;
@@ -90,19 +90,19 @@ export class Scene extends ModelClass {
      * Initializes a new instance of the Scene class.
      *
      * @param scene - The scene data used to construct the Scene instance.
-     *   - `objects`: An array of objects to be included in the scene.
+     *   - `models3d`: An array of 3D models to be included in the scene.
      *   - `camera`: The camera configuration for the scene.
      *   - `lights`: An array of lights to be added to the scene.
      *   - `ambientLight`: The ambient light color for the scene.
      *   - `updatedAt`: The timestamp of the last update to the scene.
      *   - `createdAt`: The timestamp of when the scene was created.
      *
-     * Sets up the scene by creating SceneObject instances for each object,
+     * Sets up the scene by creating Model3D instances for each model,
      * initializing the camera and lights, and setting the ambient light color.
      */
     constructor(scene: SceneType) {
         super();
-        this._objects = scene.objects.map((obj) => new SceneObject(obj));
+        this._models3d = scene.models3d.map((model) => new Model3D(model));
         this._camera = new Camera(scene.camera);
         this._lights = scene.lights.map((light) => new Light(light));
         this._ambientLight = new AmbientLight(scene.ambientLight);
@@ -116,12 +116,12 @@ export class Scene extends ModelClass {
     /* Getters */
 
     /**
-     * Gets the collection of objects contained within the scene.
+     * Gets the collection of 3D models contained within the scene.
      *
-     * @returns The array or collection of objects managed by this scene.
+     * @returns The array of 3D models managed by this scene.
      */
-    get objects(): Scene["_objects"] {
-        return this._objects;
+    get models3d(): Scene["_models3d"] {
+        return this._models3d;
     }
 
     /**
@@ -163,14 +163,14 @@ export class Scene extends ModelClass {
     /* Setters */
 
     /**
-     * Sets the objects in the scene.
-     * Replaces the current objects with a shallow copy of the provided array.
+     * Sets the 3D models in the scene.
+     * Replaces the current models with a shallow copy of the provided array.
      *
-     * @param value - An array of objects to set for the scene.
+     * @param value - An array of 3D models to set for the scene.
      */
-    set objects(value: Scene["objects"]) {
-        this._objects = [...value];
-        this.markFieldDirty("objects");
+    set models3d(value: Scene["models3d"]) {
+        this._models3d = [...value];
+        this.markFieldDirty("models3d");
     }
 
     /**
@@ -205,43 +205,43 @@ export class Scene extends ModelClass {
     /* Methods */
 
     /**
-     * Adds an object to the scene.
+     * Adds a 3D model to the scene.
      *
-     * If the provided object is already an instance of `SceneObject`, it is directly added to the scene's objects.
-     * Otherwise, a new `SceneObject` is created from the provided object and then added.
+     * If the provided model is already an instance of `Model3D`, it is directly added to the scene's models.
+     * Otherwise, a new `Model3D` is created from the provided model and then added.
      *
-     * @param obj - The object to add, which can be either an existing `SceneObject` or a plain object compatible with `SceneType["objects"][number]`.
+     * @param model - The 3D model to add, which can be either an existing `Model3D` or a plain object compatible with `Model3DType`.
      */
-    addObject(obj: Scene["_objects"][number]): void {
-        // Vérifier si un objet avec le même ID existe déjà (pour éviter les doublons en React Strict Mode)
-        const existingIndex = this.objects.findIndex(
-            (existing) => existing.id === obj.id
+    addModel(model: Scene["_models3d"][number]): void {
+        // Vérifier si un modèle avec le même ID existe déjà (pour éviter les doublons en React Strict Mode)
+        const existingIndex = this.models3d.findIndex(
+            (existing) => existing.id === model.id
         );
         if (existingIndex !== -1) {
             console.warn(
-                `[Scene.addObject] Object with id "${obj.id}" already exists, skipping`
+                `[Scene.addModel] Model with id "${model.id}" already exists, skipping`
             );
             return;
         }
 
-        this.objects.push(obj);
-        this.markFieldDirty("objects");
+        this.models3d.push(model);
+        this.markFieldDirty("models3d");
     }
 
     /**
-     * Removes an object from the scene by its unique identifier.
+     * Removes a 3D model from the scene by its unique identifier.
      *
-     * @param objId - The unique identifier of the object to remove.
+     * @param modelId - The unique identifier of the model to remove.
      */
-    removeObject(objId: SceneType["objects"][number]["id"]): void {
-        const initialLength = this.objects.length;
-        this.objects = this.objects.filter((obj) => obj.id !== objId);
-        if (this.objects.length === initialLength) {
+    removeModel(modelId: SceneType["models3d"][number]["id"]): void {
+        const initialLength = this.models3d.length;
+        this.models3d = this.models3d.filter((model) => model.id !== modelId);
+        if (this.models3d.length === initialLength) {
             throw new Error(
-                `Object with id "${objId}" not found in the scene.`
+                `Model with id "${modelId}" not found in the scene.`
             );
         }
-        this.markFieldDirty("objects");
+        this.markFieldDirty("models3d");
     }
 
     /**
@@ -292,15 +292,15 @@ export class Scene extends ModelClass {
     }
 
     /**
-     * Retrieves an object from the scene by its unique identifier.
+     * Retrieves a 3D model from the scene by its unique identifier.
      *
-     * @param name - The unique identifier of the object to retrieve.
-     * @returns The object with the specified name if found; otherwise, `undefined`.
+     * @param name - The unique identifier of the model to retrieve.
+     * @returns The model with the specified name if found; otherwise, `undefined`.
      */
-    getObjectById(
-        name: SceneType["objects"][number]["name"]
-    ): Scene["objects"][number] | undefined {
-        return this.objects.find((obj) => obj.name === name);
+    getModelById(
+        name: SceneType["models3d"][number]["name"]
+    ): Scene["models3d"][number] | undefined {
+        return this.models3d.find((model) => model.name === name);
     }
 
     /**
@@ -331,7 +331,7 @@ export class Scene extends ModelClass {
      * Serializes the current scene into a `SceneType` object.
      *
      * The serialized object includes:
-     * - All scene objects, each serialized via their own `serialize` method.
+     * - All 3D models, each serialized via their own `serialize` method.
      * - The camera, serialized via its `serialize` method.
      * - All lights in the scene, each serialized via their own `serialize` method.
      * - The ambient light, serialized via its `serialize` method.
@@ -340,7 +340,7 @@ export class Scene extends ModelClass {
      */
     serialize(): SceneType {
         return {
-            objects: this.objects.map((obj) => obj.serialize()),
+            models3d: this.models3d.map((model) => model.serialize()),
             camera: this.camera.serialize(),
             lights: this.lights.map((light) => light.serialize()),
             ambientLight: this.ambientLight.serialize(),
@@ -448,10 +448,10 @@ export class Scene extends ModelClass {
                 if (this._ambientLight.countDirtyFields() > 0) {
                     await this._ambientLight.save();
                 }
-                // Sauvegarder les objets qui ont des dirty fields
-                for (const obj of this._objects) {
-                    if (obj.countDirtyFields() > 0) {
-                        await obj.save();
+                // Sauvegarder les modèles 3D qui ont des dirty fields
+                for (const model of this._models3d) {
+                    if (model.countDirtyFields() > 0) {
+                        await model.save();
                     }
                 }
                 return;
@@ -460,30 +460,28 @@ export class Scene extends ModelClass {
             this._updatedAt = new Date();
             // Graphql update date here
 
-            if (this.dirtyFields.has("objects")) {
+            if (this.dirtyFields.has("models3d")) {
                 await this.syncCollection(
-                    this._objects,
+                    this._models3d,
                     async () => {
                         console.log(
-                            "[Scene.save] Fetching existing scene objects..."
+                            "[Scene.save] Fetching existing 3D models..."
                         );
-                        const objects = await this.repository.getSceneObjects();
-                        return objects;
+                        const models = await this.repository.getModel3Ds();
+                        return models;
                     },
-                    async (obj) => {
-                        console.log(
-                            "[Scene.save] Creating new scene object..."
-                        );
-                        return await this.repository.createSceneObject(
-                            obj as SceneObject
+                    async (model) => {
+                        console.log("[Scene.save] Creating new 3D model...");
+                        return await this.repository.createModel3D(
+                            model as Model3D
                         );
                     },
                     async (id) => {
                         console.log(
-                            "[Scene.save] Removing scene object with id:",
+                            "[Scene.save] Removing 3D model with id:",
                             id
                         );
-                        await this.repository.removeSceneObject(id);
+                        await this.repository.removeModel3D(id);
                     }
                 );
             }
@@ -544,7 +542,21 @@ export class Scene extends ModelClass {
         }
     }
 
-    async createCube() {
+    /**
+     * NOTE: Les méthodes de création de primitives (createCube, createSphere, etc.)
+     * ont été commentées car elles utilisaient SceneObject avec des vertices.
+     *
+     * Avec Model3D, vous devez maintenant:
+     * 1. Uploader un fichier 3D (GLB, GLTF, OBJ, etc.) via /api/models/upload
+     * 2. Créer un Model3D dans la scène via la mutation GraphQL createModel3D
+     *
+     * Pour créer des primitives, vous pouvez:
+     * - Utiliser three.js pour générer les géométries côté client
+     * - Exporter des modèles de primitives depuis Blender en GLB
+     * - Utiliser une bibliothèque de modèles 3D prédéfinis
+     */
+
+    /* async createCube() {
         const vertices = new Float32Array([
             -0.5,
             -0.5,
@@ -939,6 +951,6 @@ export class Scene extends ModelClass {
             materialId: "default",
         });
 
-        this.addObject(planeObject);
-    }
+        this.addModel(planeObject);
+    } */
 }

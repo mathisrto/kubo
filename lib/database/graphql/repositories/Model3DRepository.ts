@@ -1,146 +1,256 @@
-import { Collection, ObjectId } from "mongodb";
-import { Model3DType } from "../../../class/Model3D";
-import { getDb } from "../../client";
+import { gql } from "@apollo/client";
+import { Model3DType, MODEL_FILE_FORMAT } from "../../../class/Model3D";
+import { Vector3Type } from "../../../class/Vector3";
+import { apolloClient } from "../client";
 
 export class Model3DRepository {
-    private static instance: Model3DRepository;
-    private collectionName = "models3d";
-
-    private constructor() {}
-
-    static getInstance(): Model3DRepository {
-        if (!Model3DRepository.instance) {
-            Model3DRepository.instance = new Model3DRepository();
-        }
-        return Model3DRepository.instance;
-    }
-
-    private async getCollection(): Promise<Collection | null> {
-        const db = await getDb();
-        if (!db) return null;
-        return db.collection(this.collectionName);
-    }
-
-    /**
-     * Create a new 3D model document
-     */
-    async create(data: Omit<Model3DType, "id">): Promise<string | null> {
-        try {
-            const collection = await this.getCollection();
-            if (!collection) return null;
-
-            const doc = {
-                ...data,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            };
-
-            const result = await collection.insertOne(doc);
-            console.log(`✅ Model3D created: ${result.insertedId}`);
-            return result.insertedId.toString();
-        } catch (error) {
-            console.error("❌ Failed to create Model3D:", error);
-            return null;
-        }
-    }
-
-    /**
-     * Find a model by ID
-     */
-    async findById(id: string): Promise<Model3DType | null> {
-        try {
-            const collection = await this.getCollection();
-            if (!collection) return null;
-
-            const doc = await collection.findOne({ _id: new ObjectId(id) });
-            if (!doc) return null;
-
-            const { _id, ...rest } = doc;
-            return {
-                ...rest,
-                id: _id.toString(),
-            } as unknown as Model3DType;
-        } catch (error) {
-            console.error("❌ Failed to find Model3D:", error);
-            return null;
-        }
-    }
-
-    /**
-     * Update a model
-     */
-    async update(
-        id: string,
-        data: Partial<Omit<Model3DType, "id">>
-    ): Promise<boolean> {
-        try {
-            const collection = await this.getCollection();
-            if (!collection) return false;
-
-            const result = await collection.updateOne(
-                { _id: new ObjectId(id) },
-                {
-                    $set: {
-                        ...data,
-                        updatedAt: new Date(),
-                    },
+    async getModel3DById(id: string): Promise<Model3DType | null> {
+        const query = gql`
+            query getModel3DById($id: String!) {
+                getModel3DById(id: $id) {
+                    id
+                    name
+                    fileId
+                    format
+                    position {
+                        x
+                        y
+                        z
+                    }
+                    rotation {
+                        x
+                        y
+                        z
+                    }
+                    scale {
+                        x
+                        y
+                        z
+                    }
+                    materialId
                 }
-            );
-
-            if (result.modifiedCount > 0) {
-                console.log(`✅ Model3D updated: ${id}`);
-                return true;
             }
-            return false;
-        } catch (error) {
-            console.error("❌ Failed to update Model3D:", error);
-            return false;
-        }
+        `;
+        const result = await apolloClient.query({
+            query,
+            variables: { id },
+        });
+        return (
+            (result.data as { getModel3DById: Model3DType | null })
+                .getModel3DById || null
+        );
     }
 
-    /**
-     * Delete a model
-     */
-    async delete(id: string): Promise<boolean> {
-        try {
-            const collection = await this.getCollection();
-            if (!collection) return false;
-
-            const result = await collection.deleteOne({
-                _id: new ObjectId(id),
-            });
-
-            if (result.deletedCount > 0) {
-                console.log(`✅ Model3D deleted: ${id}`);
-                return true;
+    async updateModel3DName(id: string, name: string): Promise<boolean> {
+        const mutation = gql`
+            mutation updateModel3DName($id: String!, $name: String!) {
+                updateModel3DName(id: $id, name: $name) {
+                    acknowledged
+                }
             }
-            return false;
-        } catch (error) {
-            console.error("❌ Failed to delete Model3D:", error);
-            return false;
-        }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { id, name },
+        });
+        return (
+            (
+                result.data as {
+                    updateModel3DName: { acknowledged: boolean };
+                }
+            ).updateModel3DName?.acknowledged || false
+        );
     }
 
-    /**
-     * Find all models (optional filter)
-     */
-    async findAll(filter?: Record<string, any>): Promise<Model3DType[]> {
-        try {
-            const collection = await this.getCollection();
-            if (!collection) return [];
+    async updateModel3DFileId(id: string, fileId: string): Promise<boolean> {
+        const mutation = gql`
+            mutation updateModel3DFileId($id: String!, $fileId: String!) {
+                updateModel3DFileId(id: $id, fileId: $fileId) {
+                    acknowledged
+                }
+            }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { id, fileId },
+        });
+        return (
+            (
+                result.data as {
+                    updateModel3DFileId: { acknowledged: boolean };
+                }
+            ).updateModel3DFileId?.acknowledged || false
+        );
+    }
 
-            const docs = await collection.find(filter || {}).toArray();
+    async updateModel3DFormat(
+        id: string,
+        format: MODEL_FILE_FORMAT
+    ): Promise<boolean> {
+        const mutation = gql`
+            mutation updateModel3DFormat(
+                $id: String!
+                $format: ModelFileFormat!
+            ) {
+                updateModel3DFormat(id: $id, format: $format) {
+                    acknowledged
+                }
+            }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { id, format },
+        });
+        return (
+            (
+                result.data as {
+                    updateModel3DFormat: { acknowledged: boolean };
+                }
+            ).updateModel3DFormat?.acknowledged || false
+        );
+    }
 
-            return docs.map((doc) => {
-                const { _id, ...rest } = doc;
-                return {
-                    ...rest,
-                    id: _id.toString(),
-                } as unknown as Model3DType;
-            });
-        } catch (error) {
-            console.error("❌ Failed to find Model3D list:", error);
-            return [];
-        }
+    async updateModel3DPosition(
+        id: string,
+        position: Vector3Type
+    ): Promise<boolean> {
+        const mutation = gql`
+            mutation updateModel3DPosition(
+                $id: String!
+                $position: Vector3Input!
+            ) {
+                updateModel3DPosition(id: $id, position: $position) {
+                    acknowledged
+                }
+            }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { id, position },
+        });
+        return (
+            (
+                result.data as {
+                    updateModel3DPosition: { acknowledged: boolean };
+                }
+            ).updateModel3DPosition?.acknowledged || false
+        );
+    }
+
+    async updateModel3DRotation(
+        id: string,
+        rotation: Vector3Type
+    ): Promise<boolean> {
+        const mutation = gql`
+            mutation updateModel3DRotation(
+                $id: String!
+                $rotation: Vector3Input!
+            ) {
+                updateModel3DRotation(id: $id, rotation: $rotation) {
+                    acknowledged
+                }
+            }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { id, rotation },
+        });
+        return (
+            (
+                result.data as {
+                    updateModel3DRotation: { acknowledged: boolean };
+                }
+            ).updateModel3DRotation?.acknowledged || false
+        );
+    }
+
+    async updateModel3DScale(id: string, scale: Vector3Type): Promise<boolean> {
+        const mutation = gql`
+            mutation updateModel3DScale($id: String!, $scale: Vector3Input!) {
+                updateModel3DScale(id: $id, scale: $scale) {
+                    acknowledged
+                }
+            }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { id, scale },
+        });
+        return (
+            (
+                result.data as {
+                    updateModel3DScale: { acknowledged: boolean };
+                }
+            ).updateModel3DScale?.acknowledged || false
+        );
+    }
+
+    async updateModel3DMaterialId(
+        id: string,
+        materialId: string
+    ): Promise<boolean> {
+        const mutation = gql`
+            mutation updateModel3DMaterialId(
+                $id: String!
+                $materialId: String!
+            ) {
+                updateModel3DMaterialId(id: $id, materialId: $materialId) {
+                    acknowledged
+                }
+            }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { id, materialId },
+        });
+        return (
+            (
+                result.data as {
+                    updateModel3DMaterialId: { acknowledged: boolean };
+                }
+            ).updateModel3DMaterialId?.acknowledged || false
+        );
+    }
+
+    async createModel3D(
+        name: string,
+        fileId: string,
+        format: MODEL_FILE_FORMAT
+    ): Promise<string | null> {
+        const mutation = gql`
+            mutation createModel3D(
+                $name: String!
+                $fileId: String!
+                $format: ModelFileFormat!
+            ) {
+                createModel3D(name: $name, fileId: $fileId, format: $format)
+            }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { name, fileId, format },
+        });
+        return (result.data as { createModel3D: string }).createModel3D || null;
+    }
+
+    async removeModel3D(modelId: string): Promise<boolean> {
+        const mutation = gql`
+            mutation removeModel3D($modelId: String!) {
+                removeModel3D(modelId: $modelId) {
+                    acknowledged
+                }
+            }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { modelId },
+        });
+        return (
+            (
+                result.data as {
+                    removeModel3D: { acknowledged: boolean };
+                }
+            ).removeModel3D?.acknowledged || false
+        );
     }
 }

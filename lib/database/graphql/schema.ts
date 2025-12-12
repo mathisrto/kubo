@@ -6,7 +6,7 @@ import { ambientLightResolvers } from "./resolvers/AmbientLightResolver";
 import { cameraResolvers } from "./resolvers/CameraResolver";
 import { lightResolvers } from "./resolvers/LightResolver";
 import { materialResolvers } from "./resolvers/MaterialResolver";
-import { sceneObjectResolvers } from "./resolvers/SceneObjectResolver";
+import { model3DResolvers } from "./resolvers/Model3DResolver";
 import { sceneResolvers } from "./resolvers/SceneResolver";
 import { userResolvers } from "./resolvers/UserResolver";
 
@@ -20,7 +20,7 @@ const resolvers = mergeResolvers([
     cameraResolvers,
     lightResolvers,
     materialResolvers,
-    sceneObjectResolvers,
+    model3DResolvers,
     sceneResolvers,
     userResolvers,
 ]);
