@@ -59,12 +59,6 @@ export default function LoginPage() {
                 email,
                 password
             );
-
-            if (!userCredential.user.emailVerified) {
-                setError(t("email_not_verified"));
-                setIsLoading(false);
-                return;
-            }
             await login(userCredential);
         } catch (err: any) {
             setError(

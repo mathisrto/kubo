@@ -154,4 +154,20 @@ export class UserRepository {
         const res = await apolloClient.query({ query });
         return (res.data as { hasScene: boolean }).hasScene;
     }
+
+    async updateApiKey(userId: string, apiKey: string): Promise<boolean> {
+        const mutation = gql`
+            mutation UpdateApiKey($userId: String!, $apiKey: String!) {
+                updateApiKey(userId: $userId, apiKey: $apiKey) {
+                    acknowledged
+                }
+            }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { userId, apiKey },
+        });
+        return (result.data as { updateApiKey: { acknowledged: boolean } })
+            .updateApiKey.acknowledged;
+    }
 }

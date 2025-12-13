@@ -1,26 +1,15 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Scene } from "@/lib/class/Scene";
+import { useScene } from "@/lib/contexts/SceneContext";
+import { useViewport } from "@/lib/contexts/ViewportContext";
 import { TrashIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-interface SceneHierarchyProps {
-    scene: Scene | null;
-    isLoading: boolean;
-    selectedObject: string | null;
-    onSelectObject: (objId: string | null) => void;
-    updateScene: () => void;
-}
-
-export const SceneHierarchy = ({
-    scene,
-    isLoading,
-    selectedObject,
-    onSelectObject,
-    updateScene,
-}: SceneHierarchyProps) => {
+export const SceneHierarchy = () => {
     const t = useTranslations("Dashboard");
+    const { scene, isLoading } = useScene();
+    const { selectedObject, setSelectedObject, triggerUpdate } = useViewport();
 
     return (
         <Card className="h-full overflow-auto">
@@ -42,7 +31,7 @@ export const SceneHierarchy = ({
                                         key={`light-${idx}`}
                                         className="cursor-pointer hover:text-primary text-sm"
                                         onClick={() =>
-                                            onSelectObject(`light-${idx}`)
+                                            setSelectedObject(`light-${idx}`)
                                         }
                                     >
                                         💡 {light.name || `Light ${idx + 1}`}
@@ -53,7 +42,7 @@ export const SceneHierarchy = ({
                                         key={`model-${idx}`}
                                         className="cursor-pointer hover:text-primary text-sm"
                                         onClick={() =>
-                                            onSelectObject(model.id || null)
+                                            setSelectedObject(model.id || null)
                                         }
                                     >
                                         <div className="flex justify-between items-center">
@@ -69,7 +58,7 @@ export const SceneHierarchy = ({
                                                         selectedObject ===
                                                         model.id
                                                     ) {
-                                                        onSelectObject(null);
+                                                        setSelectedObject(null);
                                                         // Wait for React to process the state change
                                                         await new Promise(
                                                             (resolve) =>
@@ -83,7 +72,7 @@ export const SceneHierarchy = ({
                                                         scene.removeModel(
                                                             model.id
                                                         );
-                                                        updateScene();
+                                                        triggerUpdate();
                                                     }
                                                 }}
                                             />

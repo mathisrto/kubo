@@ -45,6 +45,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
     const handleLogin = async (user: UserCredential) => {
         await withLoading(async () => {
+            // Vérifier si l'email est vérifié
+            if (!user.user.emailVerified) {
+                throw new Error(
+                    "Veuillez vérifier votre email avant de vous connecter. Un email de vérification vous a été envoyé."
+                );
+            }
+
             const res = await fetch("/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -73,11 +80,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
                 const res = await fetch("/auth/refresh", { method: "POST" });
                 const data = await res.json();
                 if (res.ok && data?.customToken) {
-                    const user = await signInWithCustomToken(
+                    const userCredential = await signInWithCustomToken(
                         auth,
                         data.customToken
                     );
-                    setUser(new User(user.user));
+
+                    setUser(new User(userCredential.user));
                 }
             } catch (error) {
                 console.error(

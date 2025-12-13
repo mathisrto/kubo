@@ -1,4 +1,5 @@
 import "@/app/globals.css";
+import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/lib/components/ThemeProvider";
 import { LocaleProvider } from "@/lib/contexts/LocaleContext";
 import { UserProvider } from "@/lib/contexts/UserContext";
@@ -51,7 +52,10 @@ export default async function LocaleLayout({
                 <NextIntlClientProvider messages={messages}>
                     <LocaleProvider initialLocale={locale}>
                         <UserProvider>
-                            <ThemeProvider>{children}</ThemeProvider>
+                            <ThemeProvider>
+                                {children}
+                                <Toaster />
+                            </ThemeProvider>
                         </UserProvider>
                     </LocaleProvider>
                 </NextIntlClientProvider>

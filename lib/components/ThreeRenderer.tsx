@@ -17,24 +17,25 @@ import { EffectComposer, Outline } from "@react-three/postprocessing";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { useScene } from "../contexts/SceneContext";
-
-interface ThreeSceneProps {
-    update?: number;
-    selectedObject?: string | null;
-    transformMode?: "translate" | "rotate" | "scale" | null;
-}
+import { useViewport } from "../contexts/ViewportContext";
 
 /**
  * Composant pour un modèle 3D individuel avec gestion du hover et de la sélection
  */
-function Model3D({ model }: { model: any }) {
+function Model3D({
+    model,
+    isTransforming,
+}: {
+    model: any;
+    isTransforming?: boolean;
+}) {
     const [hovered, setHover] = useState(false);
     const meshRef = useRef<THREE.Mesh>(null);
 
     const isProcedural = model.metadata?.procedural === true;
     const geometry = model.metadata?.geometry;
 
-    useCursor(hovered);
+    useCursor(hovered && !isTransforming);
 
     return (
         <mesh
@@ -56,7 +57,14 @@ function Model3D({ model }: { model: any }) {
                 model.scaleVector.y,
                 model.scaleVector.z,
             ]}
-            onPointerOver={(e) => (e.stopPropagation(), setHover(true))}
+            onClick={(e) => {
+                if (isTransforming) {
+                    e.stopPropagation();
+                }
+            }}
+            onPointerOver={(e) =>
+                !isTransforming && (e.stopPropagation(), setHover(true))
+            }
             onPointerOut={(e) => setHover(false)}
         >
             {isProcedural && geometry === "cube" && (
@@ -114,30 +122,46 @@ import sunset from "@/data/images/venice_sunset.jpg";
 /**
  * Scene content - everything inside the Canvas
  */
-function SceneContent({
-    selectedObject,
-    transformMode,
-}: {
-    selectedObject?: string | null;
-    transformMode?: "translate" | "rotate" | "scale" | null;
-}) {
-    const { scene, isLoading } = useScene();
+function SceneContent() {
+    const { scene } = useScene();
+    const {
+        selectedObject,
+        transformMode,
+        environmentIntensity,
+        environmentImage,
+    } = useViewport();
     const [isControlsInitialized, setIsControlsInitialized] = useState(false);
     const [selectedMeshes, setSelectedMeshes] = useState<THREE.Mesh[]>([]);
+    const [isTransforming, setIsTransforming] = useState(false);
 
     if (!scene) return null;
+
+    // Map environment names to actual image paths
+    const environmentMap: Record<string, string> = {
+        venice_sunset: sunset.src,
+        studio: sunset.src, // TODO: Add actual studio environment
+        warehouse: sunset.src, // TODO: Add actual warehouse environment
+        forest: sunset.src, // TODO: Add actual forest environment
+    };
+
+    const currentEnvironment = environmentMap[environmentImage] || sunset.src;
 
     return (
         <>
             <Environment
-                files={sunset.src}
+                files={currentEnvironment}
                 background
                 backgroundBlurriness={0.5}
+                environmentIntensity={environmentIntensity}
             />
-            <Select multiple>
+            <Select>
                 <SelectionObserver onSelectionChange={setSelectedMeshes} />
                 {scene.models3d.map((model) => (
-                    <Model3D key={model.id} model={model} />
+                    <Model3D
+                        key={model.id}
+                        model={model}
+                        isTransforming={isTransforming}
+                    />
                 ))}
             </Select>
 
@@ -146,6 +170,8 @@ function SceneContent({
                 <TransformControls
                     object={selectedMeshes[0]}
                     mode={transformMode}
+                    onMouseDown={() => setIsTransforming(true)}
+                    onMouseUp={() => setIsTransforming(false)}
                     onObjectChange={() => {
                         const mesh = selectedMeshes[0];
                         const model = mesh.userData.model;
@@ -254,11 +280,7 @@ function SceneContent({
 /**
  * Main Three.js renderer component using React Three Fiber
  */
-const ThreeScene = ({
-    update,
-    selectedObject,
-    transformMode,
-}: ThreeSceneProps) => {
+const ThreeScene = () => {
     const { isLoading } = useScene();
 
     if (isLoading) {
@@ -266,7 +288,7 @@ const ThreeScene = ({
             <div
                 style={{
                     width: "100%",
-                    height: "400px",
+                    height: "100%",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -278,16 +300,13 @@ const ThreeScene = ({
     }
 
     return (
-        <div style={{ width: "100%", height: "400px", position: "relative" }}>
+        <div style={{ width: "100%", height: "100%", position: "relative" }}>
             <Canvas
                 shadows
                 camera={{ position: [5, 5, 5], fov: 75 }}
                 style={{ background: "#1a1a1a" }}
             >
-                <SceneContent
-                    selectedObject={selectedObject}
-                    transformMode={transformMode}
-                />
+                <SceneContent />
             </Canvas>
         </div>
     );
