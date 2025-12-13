@@ -83,7 +83,6 @@ export const SceneHierarchy = ({
                                                         scene.removeModel(
                                                             model.id
                                                         );
-                                                        scene.save();
                                                         updateScene();
                                                     }
                                                 }}

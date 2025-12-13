@@ -27,20 +27,13 @@ export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({
     const [isLoading, setIsLoading] = useState(true);
     const loadedUserRef = useRef<string | null>(null);
 
-    // 💾 Auto-save de la scène toutes les secondes
+    // 🧹 Cleanup de la scène quand elle change ou au démontage
     useEffect(() => {
-        if (!scene) return;
-
-        const autoSaveInterval = setInterval(async () => {
-            try {
-                await scene.save();
-                console.log("[AutoSave] Scene saved");
-            } catch (error) {
-                console.error("[AutoSave] Failed to save scene:", error);
+        return () => {
+            if (scene) {
+                scene.destroy();
             }
-        }, 1000); // 1 seconde
-
-        return () => clearInterval(autoSaveInterval);
+        };
     }, [scene]);
 
     // 🔁 Quand le user change, on recharge sa scène

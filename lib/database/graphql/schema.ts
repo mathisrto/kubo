@@ -1,6 +1,7 @@
 import { mergeResolvers } from "@graphql-tools/merge";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import fs from "fs";
+import { GraphQLJSON } from "graphql-type-json";
 import path from "path";
 import { ambientLightResolvers } from "./resolvers/AmbientLightResolver";
 import { cameraResolvers } from "./resolvers/CameraResolver";
@@ -16,6 +17,9 @@ const typeDefs = fs.readFileSync(
 );
 
 const resolvers = mergeResolvers([
+    {
+        JSON: GraphQLJSON, // Add JSON scalar resolver
+    },
     ambientLightResolvers,
     cameraResolvers,
     lightResolvers,

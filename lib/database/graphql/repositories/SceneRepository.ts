@@ -50,8 +50,22 @@ export class SceneRepository {
                 $name: String!
                 $fileId: String!
                 $format: ModelFileFormat!
+                $position: Vector3Input
+                $rotation: Vector3Input
+                $scale: Vector3Input
+                $materialId: String
+                $metadata: JSON
             ) {
-                createModel3D(name: $name, fileId: $fileId, format: $format)
+                createModel3D(
+                    name: $name
+                    fileId: $fileId
+                    format: $format
+                    position: $position
+                    rotation: $rotation
+                    scale: $scale
+                    materialId: $materialId
+                    metadata: $metadata
+                )
             }
         `;
 
@@ -61,6 +75,11 @@ export class SceneRepository {
                 name: model.name,
                 fileId: model.fileId,
                 format: model.format,
+                position: model.positionVector.serialize(),
+                rotation: model.rotationVector.serialize(),
+                scale: model.scaleVector.serialize(),
+                materialId: model.materialId,
+                metadata: model.metadata,
             },
         });
         return (result.data as { createModel3D: string }).createModel3D;

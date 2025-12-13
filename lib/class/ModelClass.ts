@@ -14,6 +14,7 @@ export abstract class ModelClass {
     private _dirtyFields: Set<string> = new Set();
     // map fieldName -> set of listeners for that field; use '*' for any-field listeners
     private _listeners: Map<string, Set<(field: string) => void>> = new Map();
+    private _parent: ModelClass | null = null;
 
     constructor() {}
 
@@ -28,11 +29,36 @@ export abstract class ModelClass {
     markFieldDirty(fieldName: string): void {
         this._dirtyFields.add(fieldName);
         this.emitFieldChanged(fieldName);
+        // Propager le changement au parent
+        if (this._parent) {
+            this._parent.markFieldDirty(fieldName);
+        }
+    }
+
+    /**
+     * Définit l'objet parent pour la propagation des changements
+     */
+    setParent(parent: ModelClass | null): void {
+        this._parent = parent;
+    }
+
+    /**
+     * Configure un objet enfant pour qu'il notifie ce parent lors de ses changements
+     */
+    protected registerChild(child: ModelClass): void {
+        child.setParent(this);
+    }
+
+    /**
+     * Configure plusieurs objets enfants
+     */
+    protected registerChildren(children: ModelClass[]): void {
+        children.forEach((child) => this.registerChild(child));
     }
 
     clearDirtyFields(): void {
         this._dirtyFields.clear();
-        this.emitFieldChanged("*");
+        // Ne pas émettre d'événement pour éviter une boucle infinie avec scheduleAutoSave
     }
 
     /**

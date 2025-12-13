@@ -83,6 +83,10 @@ export class Light extends ModelClass {
         this._range = light.range;
         this._type = light.type;
         this._colorMultiplier = light.colorMultiplier ?? 1;
+
+        // Enregistrer les objets enfants pour la propagation
+        this.registerChild(this._position);
+        this.registerChild(this._color);
     }
 
     /*
@@ -322,12 +326,33 @@ export class Light extends ModelClass {
         if (this.dirtyFields.has("name")) {
             await this.repository.updateLightName(this._id, this.name);
         }
-        if (this.dirtyFields.has("position")) {
+
+        // Si un sous-champ de position a changé
+        if (
+            this._position.countDirtyFields() > 0 ||
+            this.dirtyFields.has("position")
+        ) {
+            console.log(
+                "[Light.save] Updating position:",
+                this._position.serialize()
+            );
             await this.repository.updateLightPosition(this._id, this.position);
+            this._position.clearDirtyFields();
         }
-        if (this.dirtyFields.has("color")) {
+
+        // Si un sous-champ de couleur a changé
+        if (
+            this._color.countDirtyFields() > 0 ||
+            this.dirtyFields.has("color")
+        ) {
+            console.log(
+                "[Light.save] Updating color:",
+                this._color.serialize()
+            );
             await this.repository.updateLightColor(this._id, this.color);
+            this._color.clearDirtyFields();
         }
+
         if (this.dirtyFields.has("intensity")) {
             await this.repository.updateLightIntensity(
                 this._id,
@@ -347,6 +372,6 @@ export class Light extends ModelClass {
             );
         }
 
-        this.dirtyFields.clear();
+        this.clearDirtyFields();
     }
 }

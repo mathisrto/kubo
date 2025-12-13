@@ -275,7 +275,21 @@ export const model3DResolvers = {
                     name,
                     fileId,
                     format,
-                }: { name: string; fileId: string; format: MODEL_FILE_FORMAT },
+                    position,
+                    rotation,
+                    scale,
+                    materialId,
+                    metadata,
+                }: {
+                    name: string;
+                    fileId: string;
+                    format: MODEL_FILE_FORMAT;
+                    position?: { x: number; y: number; z: number };
+                    rotation?: { x: number; y: number; z: number };
+                    scale?: { x: number; y: number; z: number };
+                    materialId?: string | null;
+                    metadata?: any;
+                },
                 context: ContextType
             ) => {
                 const uid = context.uid;
@@ -288,7 +302,17 @@ export const model3DResolvers = {
                 if (!format) {
                     throw new Error("Format is required");
                 }
-                return await createModel3D(uid, name, fileId, format);
+                return await createModel3D(
+                    uid,
+                    name,
+                    fileId,
+                    format,
+                    position,
+                    rotation,
+                    scale,
+                    materialId,
+                    metadata
+                );
             }
         ),
         removeModel3D: requireAuth(

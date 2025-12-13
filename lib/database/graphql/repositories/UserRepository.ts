@@ -114,6 +114,29 @@ export class UserRepository {
                         }
                         materialId
                     }
+                    models3d {
+                        id
+                        name
+                        fileId
+                        format
+                        position {
+                            x
+                            y
+                            z
+                        }
+                        rotation {
+                            x
+                            y
+                            z
+                        }
+                        scale {
+                            x
+                            y
+                            z
+                        }
+                        materialId
+                        metadata
+                    }
                     updatedAt
                 }
             }

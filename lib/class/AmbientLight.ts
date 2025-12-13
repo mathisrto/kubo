@@ -51,6 +51,9 @@ export class AmbientLight extends ModelClass {
         this._color = new Color(data.color);
         this._intensity = data.intensity;
         this._colorMultiplier = data.colorMultiplier ?? 1;
+
+        // Enregistrer la couleur comme enfant pour la propagation
+        this.registerChild(this._color);
     }
 
     /* Getters */
@@ -134,11 +137,21 @@ export class AmbientLight extends ModelClass {
     async save(): Promise<void> {
         if (this.countDirtyFields() === 0) return;
 
-        if (this.dirtyFields.has("color")) {
+        // Si un sous-champ de couleur a changé
+        if (
+            this._color.countDirtyFields() > 0 ||
+            this.dirtyFields.has("color")
+        ) {
+            console.log(
+                "[AmbientLight.save] Updating color:",
+                this._color.serialize()
+            );
             await this.repository.updateAmbientLightColor(
                 this._color.serialize()
             );
+            this._color.clearDirtyFields();
         }
+
         if (this.dirtyFields.has("intensity")) {
             await this.repository.updateAmbientLightIntensity(this._intensity);
         }
@@ -147,5 +160,7 @@ export class AmbientLight extends ModelClass {
                 this._colorMultiplier
             );
         }
+
+        this.clearDirtyFields();
     }
 }

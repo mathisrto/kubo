@@ -1,3 +1,5 @@
+import { ModelClass } from "./ModelClass";
+
 /**
  * Represents a three-dimensional vector with numeric x, y, and z components.
  *
@@ -29,7 +31,7 @@ export type Vector3Type = {
  *
  * @public
  */
-export class Vector3 {
+export class Vector3 extends ModelClass {
     private _x: Vector3Type["x"];
     private _y: Vector3Type["y"];
     private _z: Vector3Type["z"];
@@ -39,6 +41,7 @@ export class Vector3 {
      * @param vector - An object containing the x, y, and z components of the vector.
      */
     constructor(vector: Vector3Type) {
+        super();
         this._x = vector.x;
         this._y = vector.y;
         this._z = vector.z;
@@ -78,6 +81,7 @@ export class Vector3 {
      */
     set x(value: Vector3Type["x"]) {
         this._x = value;
+        this.markFieldDirty("x");
     }
 
     /**
@@ -86,6 +90,7 @@ export class Vector3 {
      */
     set y(value: Vector3Type["y"]) {
         this._y = value;
+        this.markFieldDirty("y");
     }
 
     /**
@@ -94,6 +99,7 @@ export class Vector3 {
      */
     set z(value: Vector3Type["z"]) {
         this._z = value;
+        this.markFieldDirty("z");
     }
 
     /* Methods */
@@ -207,6 +213,13 @@ export class Vector3 {
      */
     toArray(): [Vector3Type["x"], Vector3Type["y"], Vector3Type["z"]] {
         return [this.x, this.y, this.z];
+    }
+
+    /**
+     * Méthode de sauvegarde requise par ModelClass (Vector3 ne se sauvegarde pas individuellement)
+     */
+    async save(): Promise<void> {
+        // Vector3 ne se sauvegarde pas directement, c'est l'objet parent qui gère la sauvegarde
     }
 
     equals(v: Vector3Type): boolean {

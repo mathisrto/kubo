@@ -1,7 +1,7 @@
 "use client";
 
 import ThreeScene from "@/lib/components/ThreeRenderer";
-import { useScene } from "@/lib/contexts/SceneContext";
+import { SceneProvider, useScene } from "@/lib/contexts/SceneContext";
 import { useUser } from "@/lib/contexts/UserContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,12 +13,15 @@ import { ObjectProperties } from "@/lib/components/ObjectProperties";
 import { SceneHierarchy } from "@/lib/components/SceneHierarchy";
 import { TransformToolsPanel } from "@/lib/components/TransformToolsPanel";
 
-const DashboardPage = () => {
+const DashboardContent = () => {
     const { user, logout } = useUser();
     const { scene, isLoading } = useScene();
     const router = useRouter();
     const [localUser, setLocalUser] = useState(user);
     const [selectedObject, setSelectedObject] = useState<string | null>(null);
+    const [transformMode, setTransformMode] = useState<
+        "translate" | "rotate" | "scale" | null
+    >(null);
     const [cameraType, setCameraType] = useState<
         "perspective" | "orthographic"
     >("perspective");
@@ -121,6 +124,7 @@ const DashboardPage = () => {
                         <ThreeScene
                             update={updateTrigger}
                             selectedObject={selectedObject}
+                            transformMode={transformMode}
                         />
                     </div>
                 </main>
@@ -135,38 +139,42 @@ const DashboardPage = () => {
                             <CreateObjectsPanel
                                 onCreateCube={async () => {
                                     await scene?.createCube();
-                                    await scene?.save();
                                     updateScene();
                                 }}
                                 onCreateSphere={async () => {
                                     await scene?.createSphere();
-                                    await scene?.save();
                                     updateScene();
                                 }}
                                 onCreateCylinder={async () => {
                                     await scene?.createCylinder();
-                                    await scene?.save();
                                     updateScene();
                                 }}
                                 onCreatePlane={async () => {
                                     await scene?.createPlane();
-                                    await scene?.save();
                                     updateScene();
                                 }}
                             />
                             <TransformToolsPanel
-                                onSelectTool={() => console.log("Select tool")}
+                                onSelectTool={() => setTransformMode(null)}
                                 onTranslateTool={() =>
-                                    console.log("Translate tool")
+                                    setTransformMode("translate")
                                 }
-                                onRotateTool={() => console.log("Rotate tool")}
-                                onScaleTool={() => console.log("Scale tool")}
+                                onRotateTool={() => setTransformMode("rotate")}
+                                onScaleTool={() => setTransformMode("scale")}
                             />
                         </CardContent>
                     </Card>
                 </aside>
             </div>
         </div>
+    );
+};
+
+const DashboardPage = () => {
+    return (
+        <SceneProvider>
+            <DashboardContent />
+        </SceneProvider>
     );
 };
 

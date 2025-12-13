@@ -5,12 +5,12 @@ import { Vector3, Vector3Type } from "./Vector3";
  * Types of 3D model file formats supported
  */
 export enum MODEL_FILE_FORMAT {
-    GLTF = "gltf", // glTF 2.0 (JSON + bin)
-    GLB = "glb", // glTF Binary
-    OBJ = "obj", // Wavefront OBJ
-    FBX = "fbx", // Autodesk FBX
-    STL = "stl", // STereoLithography
-    PLY = "ply", // Polygon File Format
+    GLTF = "GLTF", // glTF 2.0 (JSON + bin)
+    GLB = "GLB", // glTF Binary
+    OBJ = "OBJ", // Wavefront OBJ
+    FBX = "FBX", // Autodesk FBX
+    STL = "STL", // STereoLithography
+    PLY = "PLY", // Polygon File Format
 }
 
 /**
@@ -93,6 +93,11 @@ export class Model3D extends ModelClass {
         this._metadata = data.metadata;
         this._createdAt = data.createdAt;
         this._updatedAt = data.updatedAt;
+
+        // Enregistrer les Vector3 comme enfants pour la propagation
+        this.registerChild(this._positionVector);
+        this.registerChild(this._rotationVector);
+        this.registerChild(this._scaleVector);
     }
 
     /* ==================== GETTERS ==================== */
@@ -294,23 +299,52 @@ export class Model3D extends ModelClass {
         if (this.dirtyFields.has("format")) {
             await this.repository.updateModel3DFormat(this._id, this._format);
         }
-        if (this.dirtyFields.has("position")) {
+        // Si un sous-champ de position a changé
+        if (
+            this._positionVector.countDirtyFields() > 0 ||
+            this.dirtyFields.has("position")
+        ) {
+            console.log(
+                "[Model3D.save] Updating position:",
+                this._positionVector.serialize()
+            );
             await this.repository.updateModel3DPosition(
                 this._id,
                 this._positionVector.serialize()
             );
+            this._positionVector.clearDirtyFields();
         }
-        if (this.dirtyFields.has("rotation")) {
+
+        // Si un sous-champ de rotation a changé
+        if (
+            this._rotationVector.countDirtyFields() > 0 ||
+            this.dirtyFields.has("rotation")
+        ) {
+            console.log(
+                "[Model3D.save] Updating rotation:",
+                this._rotationVector.serialize()
+            );
             await this.repository.updateModel3DRotation(
                 this._id,
                 this._rotationVector.serialize()
             );
+            this._rotationVector.clearDirtyFields();
         }
-        if (this.dirtyFields.has("scale")) {
+
+        // Si un sous-champ de scale a changé
+        if (
+            this._scaleVector.countDirtyFields() > 0 ||
+            this.dirtyFields.has("scale")
+        ) {
+            console.log(
+                "[Model3D.save] Updating scale:",
+                this._scaleVector.serialize()
+            );
             await this.repository.updateModel3DScale(
                 this._id,
                 this._scaleVector.serialize()
             );
+            this._scaleVector.clearDirtyFields();
         }
 
         if (this.dirtyFields.has("materialId") && this._materialId) {
@@ -320,6 +354,6 @@ export class Model3D extends ModelClass {
             );
         }
 
-        this.dirtyFields.clear();
+        this.clearDirtyFields();
     }
 }

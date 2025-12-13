@@ -12,7 +12,7 @@ export async function createOrResetScene(uid: string) {
         {
             $set: {
                 scene: {
-                    objects: [],
+                    models3d: [],
                     lights: [],
                     materials: [],
                     camera: {
@@ -51,6 +51,14 @@ export async function getScene(uid: string) {
     if (!col) return null;
     const id = uid;
     const doc = await col.findOne({ _id: id });
+
+    // Migration: Ajouter le champ models3d s'il n'existe pas
+    if (doc && doc.scene && !doc.scene.models3d) {
+        await col.updateOne({ _id: id }, { $set: { "scene.models3d": [] } });
+        // Retourner la scène avec le nouveau champ
+        return { ...doc.scene, models3d: [] };
+    }
+
     return doc?.scene || null;
 }
 

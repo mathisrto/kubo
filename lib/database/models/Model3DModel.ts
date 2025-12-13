@@ -235,7 +235,12 @@ export async function createModel3D(
     uid: string,
     name: string,
     fileId: string,
-    format: MODEL_FILE_FORMAT
+    format: MODEL_FILE_FORMAT,
+    position?: { x: number; y: number; z: number },
+    rotation?: { x: number; y: number; z: number },
+    scale?: { x: number; y: number; z: number },
+    materialId?: string | null,
+    metadata?: any
 ) {
     const col = await getModelsCollection();
     if (!col) return null;
@@ -245,10 +250,11 @@ export async function createModel3D(
         name,
         fileId,
         format,
-        position: { x: 0, y: 0, z: 0 },
-        rotation: { x: 0, y: 0, z: 0 },
-        scale: { x: 1, y: 1, z: 1 },
-        materialId: null,
+        position: position || { x: 0, y: 0, z: 0 },
+        rotation: rotation || { x: 0, y: 0, z: 0 },
+        scale: scale || { x: 1, y: 1, z: 1 },
+        materialId: materialId || null,
+        ...(metadata && { metadata }), // Only include metadata if provided
     };
 
     const result = await col.updateOne(

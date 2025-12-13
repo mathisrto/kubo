@@ -70,6 +70,11 @@ export class Camera extends ModelClass {
         this._near = camera.near;
         this._far = camera.far;
         this._type = camera.type;
+
+        // Enregistrer les Vector3 comme enfants pour la propagation
+        this.registerChild(this._position);
+        this.registerChild(this._rotation);
+        this.registerChild(this._target);
     }
 
     /* ========== Realtime Sync depuis la BDD ========== */
@@ -297,27 +302,54 @@ export class Camera extends ModelClass {
         if (dirtyCount === 0) return;
 
         console.log(
-            `[Camera Save] Saving ${dirtyCount} dirty fields:`,
+            `[Camera.save] Saving ${dirtyCount} dirty fields:`,
             Array.from(this.dirtyFields)
         );
 
         const promises = [];
 
-        if (this.dirtyFields.has("position")) {
+        // Si un sous-champ de position a changé (x, y, z), sauvegarder toute la position
+        if (
+            this._position.countDirtyFields() > 0 ||
+            this.dirtyFields.has("position")
+        ) {
+            console.log(
+                "[Camera.save] Updating position:",
+                this.position.serialize()
+            );
             promises.push(
                 this.repository.updateCameraPosition(this.position.serialize())
             );
         }
-        if (this.dirtyFields.has("rotation")) {
+
+        // Si un sous-champ de rotation a changé
+        if (
+            this._rotation.countDirtyFields() > 0 ||
+            this.dirtyFields.has("rotation")
+        ) {
+            console.log(
+                "[Camera.save] Updating rotation:",
+                this.rotation.serialize()
+            );
             promises.push(
                 this.repository.updateCameraRotation(this.rotation.serialize())
             );
         }
-        if (this.dirtyFields.has("target")) {
+
+        // Si un sous-champ de target a changé
+        if (
+            this._target.countDirtyFields() > 0 ||
+            this.dirtyFields.has("target")
+        ) {
+            console.log(
+                "[Camera.save] Updating target:",
+                this.target.serialize()
+            );
             promises.push(
                 this.repository.updateCameraTarget(this.target.serialize())
             );
         }
+
         if (this.dirtyFields.has("fov")) {
             promises.push(this.repository.updateCameraFOV(this.fov));
         }
@@ -333,6 +365,11 @@ export class Camera extends ModelClass {
 
         await Promise.all(promises);
         this.clearDirtyFields();
+
+        // Nettoyer aussi les dirty fields des Vector3
+        this._position.clearDirtyFields();
+        this._rotation.clearDirtyFields();
+        this._target.clearDirtyFields();
         console.log("[Camera Save] Save completed");
     }
 }

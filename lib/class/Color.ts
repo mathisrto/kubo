@@ -1,3 +1,5 @@
+import { ModelClass } from "./ModelClass";
+
 /**
  * Represents a color using RGBA (red, green, blue, alpha) channels.
  * Each channel is a number, typically in the range 0-255 for r, g, b and 0-1 for a.
@@ -29,7 +31,7 @@ export type ColorType = {
  * const serialized = color.serialize();
  * ```
  */
-export class Color {
+export class Color extends ModelClass {
     private _r: ColorType["r"];
     private _g: ColorType["g"];
     private _b: ColorType["b"];
@@ -43,6 +45,7 @@ export class Color {
      * @param color - An object of type `ColorType` containing the RGBA values.
      */
     constructor(color: ColorType) {
+        super();
         this._r = Color.clampUint8(color.r);
         this._g = Color.clampUint8(color.g);
         this._b = Color.clampUint8(color.b);
@@ -92,6 +95,7 @@ export class Color {
      */
     set r(value: ColorType["r"]) {
         this._r = Color.clampUint8(value);
+        this.markFieldDirty("r");
     }
 
     /**
@@ -101,6 +105,7 @@ export class Color {
      */
     set g(value: ColorType["g"]) {
         this._g = Color.clampUint8(value);
+        this.markFieldDirty("g");
     }
 
     /**
@@ -110,6 +115,7 @@ export class Color {
      */
     set b(value: ColorType["b"]) {
         this._b = Color.clampUint8(value);
+        this.markFieldDirty("b");
     }
 
     /**
@@ -119,6 +125,7 @@ export class Color {
      */
     set a(value: ColorType["a"]) {
         this._a = Color.clampAlpha(value);
+        this.markFieldDirty("a");
     }
 
     /* Methods */
@@ -190,6 +197,13 @@ export class Color {
      */
     public clone(): Color {
         return new Color(this.serialize());
+    }
+
+    /**
+     * Méthode de sauvegarde requise par ModelClass (Color ne se sauvegarde pas individuellement)
+     */
+    async save(): Promise<void> {
+        // Color ne se sauvegarde pas directement, c'est l'objet parent qui gère la sauvegarde
     }
 
     /**

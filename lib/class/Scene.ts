@@ -3,7 +3,7 @@ import { AmbientLight, AmbientLightType } from "./AmbientLight";
 import { Camera, CameraType } from "./Camera";
 import { Light, LightType } from "./Light";
 import { Material, MaterialType } from "./Material";
-import { Model3D, Model3DType } from "./Model3D";
+import { Model3D, Model3DType, MODEL_FILE_FORMAT } from "./Model3D";
 import { ModelClass } from "./ModelClass";
 
 /**
@@ -17,11 +17,11 @@ import { ModelClass } from "./ModelClass";
  * @property {Date} createdAt - The date and time when the scene was created.
  */
 export type SceneType = {
-    models3d: Model3DType[];
+    models3d?: Model3DType[];
     camera: CameraType;
-    lights: LightType[];
+    lights?: LightType[];
     ambientLight: AmbientLightType;
-    materials: MaterialType[];
+    materials?: MaterialType[];
     updatedAt: Date;
     createdAt: Date;
 };
@@ -85,6 +85,9 @@ export class Scene extends ModelClass {
 
     private repository = new SceneRepository();
     private _isSaving = false; // Prevent concurrent saves
+    private _autoSaveEnabled = true;
+    private _autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+    private _autoSaveDelay = 100; // Pas de debounce - onChange ne se déclenche qu'après l'arrêt du mouvement
 
     /**
      * Initializes a new instance of the Scene class.
@@ -102,15 +105,43 @@ export class Scene extends ModelClass {
      */
     constructor(scene: SceneType) {
         super();
-        this._models3d = scene.models3d.map((model) => new Model3D(model));
+        this._models3d = (scene.models3d || []).map(
+            (model) => new Model3D(model)
+        );
         this._camera = new Camera(scene.camera);
-        this._lights = scene.lights.map((light) => new Light(light));
+        this._lights = (scene.lights || []).map((light) => new Light(light));
         this._ambientLight = new AmbientLight(scene.ambientLight);
-        this._materials = scene.materials.map(
+        this._materials = (scene.materials || []).map(
             (material) => new Material(material)
         );
         this._updatedAt = scene.updatedAt;
         this._createdAt = scene.createdAt;
+
+        // Enregistrer tous les enfants pour la propagation automatique
+        this.registerAllChildren();
+
+        // Écouter les changements sur Scene elle-même pour l'auto-save
+        this.onFieldChanged(() => this.scheduleAutoSave());
+    }
+
+    /**
+     * Enregistre récursivement tous les objets enfants pour qu'ils propagent leurs changements
+     */
+    private registerAllChildren(): void {
+        // Camera et ses sous-objets
+        this.registerChild(this._camera);
+
+        // AmbientLight
+        this.registerChild(this._ambientLight);
+
+        // Tous les modèles 3D
+        this.registerChildren(this._models3d);
+
+        // Toutes les lumières
+        this.registerChildren(this._lights);
+
+        // Tous les matériaux
+        this.registerChildren(this._materials);
     }
 
     /* Getters */
@@ -171,6 +202,7 @@ export class Scene extends ModelClass {
     set models3d(value: Scene["models3d"]) {
         this._models3d = [...value];
         this.markFieldDirty("models3d");
+        this.registerAllChildren(); // Reconfigurer les relations parent-enfant
     }
 
     /**
@@ -191,6 +223,7 @@ export class Scene extends ModelClass {
     set lights(value: Scene["lights"]) {
         this._lights = [...value];
         this.markFieldDirty("lights");
+        this.registerAllChildren(); // Reconfigurer les relations parent-enfant
     }
 
     /**
@@ -233,7 +266,7 @@ export class Scene extends ModelClass {
      *
      * @param modelId - The unique identifier of the model to remove.
      */
-    removeModel(modelId: SceneType["models3d"][number]["id"]): void {
+    removeModel(modelId: Model3DType["id"]): void {
         const initialLength = this.models3d.length;
         this.models3d = this.models3d.filter((model) => model.id !== modelId);
         if (this.models3d.length === initialLength) {
@@ -262,7 +295,7 @@ export class Scene extends ModelClass {
      *
      * @param lightId - The unique identifier of the light to be removed.
      */
-    removeLight(lightId: SceneType["lights"][number]["id"]): void {
+    removeLight(lightId: LightType["id"]): void {
         const initialLength = this.lights.length;
         this.lights = this.lights.filter((light) => light.id !== lightId);
         if (this.lights.length === initialLength) {
@@ -278,7 +311,7 @@ export class Scene extends ModelClass {
         this.markFieldDirty("materials");
     }
 
-    removeMaterial(materialId: SceneType["materials"][number]["id"]): void {
+    removeMaterial(materialId: MaterialType["id"]): void {
         const initialLength = this._materials.length;
         this._materials = this._materials.filter(
             (material) => material.id !== materialId
@@ -298,7 +331,7 @@ export class Scene extends ModelClass {
      * @returns The model with the specified name if found; otherwise, `undefined`.
      */
     getModelById(
-        name: SceneType["models3d"][number]["name"]
+        name: Model3DType["name"]
     ): Scene["models3d"][number] | undefined {
         return this.models3d.find((model) => model.name === name);
     }
@@ -309,9 +342,7 @@ export class Scene extends ModelClass {
      * @param id - The unique identifier of the light to retrieve.
      * @returns The light object with the specified id if found; otherwise, `undefined`.
      */
-    getLightById(
-        id: SceneType["lights"][number]["id"]
-    ): Scene["lights"][number] | undefined {
+    getLightById(id: LightType["id"]): Scene["lights"][number] | undefined {
         return this.lights.find((light) => light.id === id);
     }
 
@@ -322,7 +353,7 @@ export class Scene extends ModelClass {
      * @returns The material object with the specified id if found; otherwise, `undefined`.
      */
     getMaterialById(
-        id: SceneType["materials"][number]["id"]
+        id: MaterialType["id"]
     ): Scene["_materials"][number] | undefined {
         return this.materials.find((material) => material.id === id);
     }
@@ -439,26 +470,49 @@ export class Scene extends ModelClass {
 
         this._isSaving = true;
         try {
-            // Maintenant traiter les dirty fields de Scene elle-même
-            if (this.countDirtyFields() === 0) {
-                // Même si Scene n'a pas de dirty fields, sauvegarder les enfants modifiés
-                if (this._camera.countDirtyFields() > 0) {
-                    await this._camera.save();
-                }
-                if (this._ambientLight.countDirtyFields() > 0) {
-                    await this._ambientLight.save();
-                }
-                // Sauvegarder les modèles 3D qui ont des dirty fields
-                for (const model of this._models3d) {
-                    if (model.countDirtyFields() > 0) {
-                        await model.save();
-                    }
-                }
-                return;
+            console.log(
+                "[Scene.save] Starting save, dirty fields:",
+                Array.from(this.dirtyFields)
+            );
+
+            // Sauvegarder la caméra si elle a changé
+            if (this._camera.countDirtyFields() > 0) {
+                console.log("[Scene.save] Saving camera...");
+                await this._camera.save();
             }
 
+            // Sauvegarder l'ambient light si elle a changé
+            if (this._ambientLight.countDirtyFields() > 0) {
+                console.log("[Scene.save] Saving ambient light...");
+                await this._ambientLight.save();
+            }
+
+            // Sauvegarder les modèles 3D qui ont des dirty fields
+            for (const model of this._models3d) {
+                if (model.countDirtyFields() > 0) {
+                    console.log("[Scene.save] Saving model:", model.id);
+                    await model.save();
+                }
+            }
+
+            // Sauvegarder les lumières qui ont des dirty fields
+            for (const light of this._lights) {
+                if (light.countDirtyFields() > 0) {
+                    console.log("[Scene.save] Saving light:", light.id);
+                    await light.save();
+                }
+            }
+
+            // Sauvegarder les matériaux qui ont des dirty fields
+            for (const material of this._materials) {
+                if (material.countDirtyFields() > 0) {
+                    console.log("[Scene.save] Saving material:", material.id);
+                    await material.save();
+                }
+            }
+
+            // Si la structure de Scene a changé (ajout/suppression d'objets)
             this._updatedAt = new Date();
-            // Graphql update date here
 
             if (this.dirtyFields.has("models3d")) {
                 await this.syncCollection(
@@ -543,414 +597,133 @@ export class Scene extends ModelClass {
     }
 
     /**
-     * NOTE: Les méthodes de création de primitives (createCube, createSphere, etc.)
-     * ont été commentées car elles utilisaient SceneObject avec des vertices.
-     *
-     * Avec Model3D, vous devez maintenant:
-     * 1. Uploader un fichier 3D (GLB, GLTF, OBJ, etc.) via /api/models/upload
-     * 2. Créer un Model3D dans la scène via la mutation GraphQL createModel3D
-     *
-     * Pour créer des primitives, vous pouvez:
-     * - Utiliser three.js pour générer les géométries côté client
-     * - Exporter des modèles de primitives depuis Blender en GLB
-     * - Utiliser une bibliothèque de modèles 3D prédéfinis
+     * Active la sauvegarde automatique (activée par défaut)
      */
+    enableAutoSave(): void {
+        this._autoSaveEnabled = true;
+    }
 
-    /* async createCube() {
-        const vertices = new Float32Array([
-            -0.5,
-            -0.5,
-            0.5, // 0
-            0.5,
-            -0.5,
-            0.5, // 1
-            0.5,
-            0.5,
-            0.5, // 2
-            -0.5,
-            0.5,
-            0.5, // 3
-            -0.5,
-            -0.5,
-            -0.5, // 4
-            0.5,
-            -0.5,
-            -0.5, // 5
-            0.5,
-            0.5,
-            -0.5, // 6
-            -0.5,
-            0.5,
-            -0.5, // 7
-        ]);
+    /**
+     * Désactive la sauvegarde automatique
+     */
+    disableAutoSave(): void {
+        this._autoSaveEnabled = false;
+        if (this._autoSaveTimer) {
+            clearTimeout(this._autoSaveTimer);
+            this._autoSaveTimer = null;
+        }
+    }
 
-        const indices = [
-            0,
-            1,
-            2,
-            0,
-            2,
-            3, // front
-            1,
-            5,
-            6,
-            1,
-            6,
-            2, // right
-            5,
-            4,
-            7,
-            5,
-            7,
-            6, // back
-            4,
-            0,
-            3,
-            4,
-            3,
-            7, // left
-            3,
-            2,
-            6,
-            3,
-            6,
-            7, // top
-            4,
-            5,
-            1,
-            4,
-            1,
-            0, // bottom
-        ];
+    /**
+     * Configure le délai de debounce pour l'auto-save (en ms)
+     */
+    setAutoSaveDelay(delayMs: number): void {
+        this._autoSaveDelay = delayMs;
+    }
 
-        const cubeObject = new SceneObject({
+    /**
+     * Programme une sauvegarde automatique avec debounce
+     */
+    private scheduleAutoSave(): void {
+        if (!this._autoSaveEnabled) return;
+
+        // Annuler le timer précédent
+        if (this._autoSaveTimer) {
+            clearTimeout(this._autoSaveTimer);
+        }
+
+        // Programmer une nouvelle sauvegarde
+        this._autoSaveTimer = setTimeout(async () => {
+            console.log("[Scene.autoSave] Saving scene automatically...");
+            await this.save();
+        }, this._autoSaveDelay);
+    }
+
+    /**
+     * Nettoie les ressources (appeler avant de détruire la scène)
+     */
+    destroy(): void {
+        this.disableAutoSave();
+    }
+
+    /**
+     * Crée un cube procédural dans la scène.
+     * Le modèle est généré côté client et stocké temporairement.
+     */
+    async createCube(): Promise<void> {
+        const model = new Model3D({
             id: `cube-${Date.now()}`,
             name: `Cube-${Date.now()}`,
-            vertices: Array.from({ length: vertices.length / 3 }, (_, i) => ({
-                x: vertices[i * 3 + 0],
-                y: vertices[i * 3 + 1],
-                z: vertices[i * 3 + 2],
-            })),
-            indices: indices,
+            fileId: "procedural-cube", // Marqueur pour géométrie procédurale
+            format: MODEL_FILE_FORMAT.GLB,
             position: { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
             scale: { x: 1, y: 1, z: 1 },
-            materialId: "default",
+            metadata: {
+                procedural: true,
+                geometry: "cube",
+            },
         });
-
-        this.addObject(cubeObject);
+        this.addModel(model);
     }
 
-    async createSphere() {
-        // Icosphere generation: start with icosahedron, then subdivide
-        const t = (1.0 + Math.sqrt(5.0)) / 2.0;
-
-        // Initial icosahedron vertices (12 vertices)
-        const initialVertices: number[] = [
-            -1,
-            t,
-            0,
-            1,
-            t,
-            0,
-            -1,
-            -t,
-            0,
-            1,
-            -t,
-            0,
-            0,
-            -1,
-            t,
-            0,
-            1,
-            t,
-            0,
-            -1,
-            -t,
-            0,
-            1,
-            -t,
-            t,
-            0,
-            -1,
-            t,
-            0,
-            1,
-            -t,
-            0,
-            -1,
-            -t,
-            0,
-            1,
-        ];
-
-        // Initial icosahedron faces (20 triangles)
-        const initialIndices = [
-            0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11, 1, 5, 9, 5, 11, 4,
-            11, 10, 2, 10, 7, 6, 7, 1, 8, 3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3,
-            8, 9, 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1,
-        ];
-
-        // Normalize vertices to unit sphere
-        const normalize = (x: number, y: number, z: number) => {
-            const len = Math.sqrt(x * x + y * y + z * z);
-            return { x: x / len, y: y / len, z: z / len };
-        };
-
-        let vertices = initialVertices
-            .map((v, i) => {
-                if (i % 3 === 0) {
-                    const { x, y, z } = normalize(
-                        initialVertices[i],
-                        initialVertices[i + 1],
-                        initialVertices[i + 2]
-                    );
-                    return [x, y, z];
-                }
-                return null;
-            })
-            .filter((v) => v !== null)
-            .flat() as number[];
-
-        let indices = [...initialIndices];
-
-        // Subdivide for smoother sphere (1 subdivision = 80 triangles, 2 = 320)
-        const subdivisions = 2;
-        for (let s = 0; s < subdivisions; s++) {
-            const newIndices: number[] = [];
-            const midpointCache = new Map<string, number>();
-
-            const getMidpoint = (i1: number, i2: number): number => {
-                const key = i1 < i2 ? `${i1}-${i2}` : `${i2}-${i1}`;
-                if (midpointCache.has(key)) {
-                    return midpointCache.get(key)!;
-                }
-
-                const x1 = vertices[i1 * 3 + 0];
-                const y1 = vertices[i1 * 3 + 1];
-                const z1 = vertices[i1 * 3 + 2];
-                const x2 = vertices[i2 * 3 + 0];
-                const y2 = vertices[i2 * 3 + 1];
-                const z2 = vertices[i2 * 3 + 2];
-
-                const { x, y, z } = normalize(
-                    (x1 + x2) / 2,
-                    (y1 + y2) / 2,
-                    (z1 + z2) / 2
-                );
-
-                const newIndex = vertices.length / 3;
-                vertices.push(x, y, z);
-                midpointCache.set(key, newIndex);
-                return newIndex;
-            };
-
-            for (let i = 0; i < indices.length; i += 3) {
-                const v1 = indices[i];
-                const v2 = indices[i + 1];
-                const v3 = indices[i + 2];
-
-                const a = getMidpoint(v1, v2);
-                const b = getMidpoint(v2, v3);
-                const c = getMidpoint(v3, v1);
-
-                newIndices.push(v1, a, c);
-                newIndices.push(v2, b, a);
-                newIndices.push(v3, c, b);
-                newIndices.push(a, b, c);
-            }
-
-            indices = newIndices;
-        }
-
-        // Scale to desired radius
-        const radius = 0.5;
-        vertices = vertices.map((v) => v * radius);
-
-        const sphereObject = new SceneObject({
+    /**
+     * Crée une sphère procédurale dans la scène.
+     */
+    async createSphere(): Promise<void> {
+        const model = new Model3D({
             id: `sphere-${Date.now()}`,
             name: `Sphere-${Date.now()}`,
-            vertices: Array.from({ length: vertices.length / 3 }, (_, i) => ({
-                x: vertices[i * 3 + 0],
-                y: vertices[i * 3 + 1],
-                z: vertices[i * 3 + 2],
-            })),
-            indices: indices,
+            fileId: "procedural-sphere",
+            format: MODEL_FILE_FORMAT.GLB,
             position: { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
             scale: { x: 1, y: 1, z: 1 },
-            materialId: "default",
+            metadata: {
+                procedural: true,
+                geometry: "sphere",
+            },
         });
-
-        this.addObject(sphereObject);
+        this.addModel(model);
     }
 
-    async createCylinder() {
-        // Cylinder parameters
-        const radius = 0.5;
-        const height = 1.0;
-        const radialSegments = 32;
-        const heightSegments = 1;
-        const openEnded = false;
-
-        const vertices: number[] = [];
-        const indices: number[] = [];
-
-        // Generate vertices
-        for (let y = 0; y <= heightSegments; y++) {
-            const v = y / heightSegments;
-            const posY = v * height - height / 2;
-
-            for (let x = 0; x <= radialSegments; x++) {
-                const u = x / radialSegments;
-                const theta = u * Math.PI * 2;
-
-                const posX = radius * Math.cos(theta);
-                const posZ = radius * Math.sin(theta);
-
-                vertices.push(posX, posY, posZ);
-            }
-        }
-
-        // Generate side indices
-        for (let y = 0; y < heightSegments; y++) {
-            for (let x = 0; x < radialSegments; x++) {
-                const a = y * (radialSegments + 1) + x;
-                const b = a + radialSegments + 1;
-                const c = a + radialSegments + 2;
-                const d = a + 1;
-
-                indices.push(a, b, d);
-                indices.push(b, c, d);
-            }
-        }
-
-        if (!openEnded) {
-            // Bottom cap center vertex
-            const bottomCenterIndex = vertices.length / 3;
-            vertices.push(0, -height / 2, 0);
-
-            // Bottom cap vertices
-            for (let x = 0; x <= radialSegments; x++) {
-                const u = x / radialSegments;
-                const theta = u * Math.PI * 2;
-                vertices.push(
-                    radius * Math.cos(theta),
-                    -height / 2,
-                    radius * Math.sin(theta)
-                );
-            }
-
-            // Bottom cap indices
-            for (let x = 0; x < radialSegments; x++) {
-                const a = bottomCenterIndex;
-                const b = bottomCenterIndex + 1 + x;
-                const c = bottomCenterIndex + 1 + x + 1;
-                indices.push(a, c, b);
-            }
-
-            // Top cap center vertex
-            const topCenterIndex = vertices.length / 3;
-            vertices.push(0, height / 2, 0);
-
-            // Top cap vertices
-            for (let x = 0; x <= radialSegments; x++) {
-                const u = x / radialSegments;
-                const theta = u * Math.PI * 2;
-                vertices.push(
-                    radius * Math.cos(theta),
-                    height / 2,
-                    radius * Math.sin(theta)
-                );
-            }
-
-            // Top cap indices
-            for (let x = 0; x < radialSegments; x++) {
-                const a = topCenterIndex;
-                const b = topCenterIndex + 1 + x;
-                const c = topCenterIndex + 1 + x + 1;
-                indices.push(a, b, c);
-            }
-        }
-
-        const cylinderObject = new SceneObject({
+    /**
+     * Crée un cylindre procédural dans la scène.
+     */
+    async createCylinder(): Promise<void> {
+        const model = new Model3D({
             id: `cylinder-${Date.now()}`,
             name: `Cylinder-${Date.now()}`,
-            vertices: Array.from({ length: vertices.length / 3 }, (_, i) => ({
-                x: vertices[i * 3 + 0],
-                y: vertices[i * 3 + 1],
-                z: vertices[i * 3 + 2],
-            })),
-            indices: indices,
+            fileId: "procedural-cylinder",
+            format: MODEL_FILE_FORMAT.GLB,
             position: { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
             scale: { x: 1, y: 1, z: 1 },
-            materialId: "default",
+            metadata: {
+                procedural: true,
+                geometry: "cylinder",
+            },
         });
-
-        this.addObject(cylinderObject);
+        this.addModel(model);
     }
 
-    async createPlane() {
-        // Plane parameters
-        const width = 1.0;
-        const height = 1.0;
-        const widthSegments = 1;
-        const heightSegments = 1;
-
-        const vertices: number[] = [];
-        const indices: number[] = [];
-
-        const halfWidth = width / 2;
-        const halfHeight = height / 2;
-
-        const gridX = widthSegments + 1;
-        const gridY = heightSegments + 1;
-
-        const segmentWidth = width / widthSegments;
-        const segmentHeight = height / heightSegments;
-
-        // Generate vertices
-        for (let iy = 0; iy < gridY; iy++) {
-            const y = iy * segmentHeight - halfHeight;
-
-            for (let ix = 0; ix < gridX; ix++) {
-                const x = ix * segmentWidth - halfWidth;
-
-                vertices.push(x, y, 0);
-            }
-        }
-
-        // Generate indices
-        for (let iy = 0; iy < heightSegments; iy++) {
-            for (let ix = 0; ix < widthSegments; ix++) {
-                const a = ix + gridX * iy;
-                const b = ix + gridX * (iy + 1);
-                const c = ix + 1 + gridX * (iy + 1);
-                const d = ix + 1 + gridX * iy;
-
-                // Two triangles per quad
-                indices.push(a, b, d);
-                indices.push(b, c, d);
-            }
-        }
-
-        const planeObject = new SceneObject({
+    /**
+     * Crée un plan procédural dans la scène.
+     */
+    async createPlane(): Promise<void> {
+        const model = new Model3D({
             id: `plane-${Date.now()}`,
             name: `Plane-${Date.now()}`,
-            vertices: Array.from({ length: vertices.length / 3 }, (_, i) => ({
-                x: vertices[i * 3 + 0],
-                y: vertices[i * 3 + 1],
-                z: vertices[i * 3 + 2],
-            })),
-            indices: indices,
+            fileId: "procedural-plane",
+            format: MODEL_FILE_FORMAT.GLB,
             position: { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
             scale: { x: 1, y: 1, z: 1 },
-            materialId: "default",
+            metadata: {
+                procedural: true,
+                geometry: "plane",
+            },
         });
-
-        this.addModel(planeObject);
-    } */
+        this.addModel(model);
+    }
 }
