@@ -6,6 +6,7 @@ import {
     GizmoViewport,
     Grid,
     OrbitControls,
+    OrthographicCamera,
     PerspectiveCamera,
     Select,
     TransformControls,
@@ -118,6 +119,7 @@ function SelectionObserver({
 }
 
 import sunset from "@/data/images/venice_sunset.jpg";
+import { CAMERA_TYPES } from "../constants";
 
 /**
  * Scene content - everything inside the Canvas
@@ -191,17 +193,31 @@ function SceneContent() {
             )}
 
             {/* Camera */}
-            <PerspectiveCamera
-                makeDefault
-                position={[
-                    scene.camera.position.x,
-                    scene.camera.position.y,
-                    scene.camera.position.z,
-                ]}
-                fov={scene.camera.fov}
-                near={scene.camera.near}
-                far={scene.camera.far}
-            />
+            {(scene.camera.type === CAMERA_TYPES.PERSPECTIVE && (
+                <PerspectiveCamera
+                    makeDefault
+                    position={[
+                        scene.camera.position.x,
+                        scene.camera.position.y,
+                        scene.camera.position.z,
+                    ]}
+                    fov={scene.camera.fov}
+                    near={scene.camera.near}
+                    far={scene.camera.far}
+                />
+            )) ||
+                (scene.camera.type === CAMERA_TYPES.ORTHOGRAPHIC && (
+                    <OrthographicCamera
+                        makeDefault
+                        position={[
+                            scene.camera.position.x,
+                            scene.camera.position.y,
+                            scene.camera.position.z,
+                        ]}
+                        near={scene.camera.near}
+                        far={scene.camera.far}
+                    />
+                ))}
 
             {/* Orbit Controls - makeDefault permet la désactivation automatique avec TransformControls */}
             <OrbitControls

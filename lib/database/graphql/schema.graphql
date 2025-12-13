@@ -215,6 +215,8 @@ type Query {
     # Scene
     getScene: Scene
     hasScene: Boolean!
+    # User
+    getApiKey(userId: String!): String
 }
 
 # Mutations
@@ -290,4 +292,6 @@ type Mutation {
     # Scene
     createOrResetScene: MutationResult!
     deleteScene: MutationResult!
+    # User
+    updateApiKey(userId: String!, apiKey: String!): MutationResult!
 }

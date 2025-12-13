@@ -170,4 +170,17 @@ export class UserRepository {
         return (result.data as { updateApiKey: { acknowledged: boolean } })
             .updateApiKey.acknowledged;
     }
+
+    async getApiKey(userId: string): Promise<string | null> {
+        const query = gql`
+            query GetApiKey($userId: String!) {
+                getApiKey(userId: $userId)
+            }
+        `;
+        const result = await apolloClient.query({
+            query,
+            variables: { userId },
+        });
+        return (result.data as { getApiKey: string | null }).getApiKey;
+    }
 }

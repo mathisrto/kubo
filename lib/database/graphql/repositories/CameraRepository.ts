@@ -241,9 +241,11 @@ export class CameraRepository {
         ).updateCameraFar.acknowledged;
     }
 
-    public async updateCameraType(type: string): Promise<boolean> {
+    public async updateCameraType(
+        type: "PERSPECTIVE" | "ORTHOGRAPHIC"
+    ): Promise<boolean> {
         const mutation = gql`
-            mutation updateCameraType($type: String!) {
+            mutation updateCameraType($type: CameraType!) {
                 updateCameraType(type: $type) {
                     acknowledged
                 }

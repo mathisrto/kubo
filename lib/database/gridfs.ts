@@ -22,21 +22,20 @@ export class GridFSService {
     /**
      * Get or create GridFS bucket
      */
-    private async getBucket(): Promise<GridFSBucket | null> {
-        if (this.bucket) return this.bucket;
-
+    private async getBucket(
+        bucketName: string = "models3d"
+    ): Promise<GridFSBucket | null> {
         const db = await getDb();
         if (!db) {
             console.error("❌ Cannot get MongoDB database for GridFS");
             return null;
         }
 
-        this.bucket = new GridFSBucket(db, {
-            bucketName: "models3d", // Collection prefix: models3d.files, models3d.chunks
+        const bucket = new GridFSBucket(db, {
+            bucketName, // Collection prefix: {bucketName}.files, {bucketName}.chunks
         });
 
-        console.log("✅ GridFS bucket initialized");
-        return this.bucket;
+        return bucket;
     }
 
     /**
@@ -52,7 +51,7 @@ export class GridFSService {
         metadata?: Record<string, any>
     ): Promise<string | null> {
         try {
-            const bucket = await this.getBucket();
+            const bucket = await this.getBucket("models3d");
             if (!bucket) return null;
 
             return new Promise((resolve, reject) => {
@@ -85,13 +84,58 @@ export class GridFSService {
     }
 
     /**
+     * Upload an avatar file to GridFS (avatars bucket)
+     * @param buffer - File buffer
+     * @param filename - Original filename (e.g., "avatar_uid_timestamp.jpg")
+     * @param metadata - Additional metadata (e.g., { contentType: "image/jpeg" })
+     * @returns File ID (ObjectId as string)
+     */
+    async uploadAvatarFile(
+        buffer: Buffer,
+        filename: string,
+        metadata?: Record<string, any>
+    ): Promise<string | null> {
+        try {
+            const bucket = await this.getBucket("avatars");
+            if (!bucket) return null;
+
+            return new Promise((resolve, reject) => {
+                const uploadStream = bucket.openUploadStream(filename, {
+                    metadata: {
+                        ...metadata,
+                        uploadedAt: new Date(),
+                    },
+                });
+
+                const readableStream = Readable.from(buffer);
+                readableStream.pipe(uploadStream);
+
+                uploadStream.on("finish", () => {
+                    console.log(
+                        `✅ Avatar uploaded to GridFS: ${filename} (${uploadStream.id})`
+                    );
+                    resolve(uploadStream.id.toString());
+                });
+
+                uploadStream.on("error", (error) => {
+                    console.error("❌ GridFS avatar upload error:", error);
+                    reject(error);
+                });
+            });
+        } catch (error) {
+            console.error("❌ Failed to upload avatar to GridFS:", error);
+            return null;
+        }
+    }
+
+    /**
      * Download a file from GridFS
      * @param fileId - File ID (ObjectId as string)
      * @returns Readable stream
      */
     async downloadFile(fileId: string): Promise<Readable | null> {
         try {
-            const bucket = await this.getBucket();
+            const bucket = await this.getBucket("models3d");
             if (!bucket) return null;
 
             const downloadStream = bucket.openDownloadStream(
@@ -101,6 +145,27 @@ export class GridFSService {
             return downloadStream;
         } catch (error) {
             console.error("❌ Failed to download file from GridFS:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Download an avatar file from GridFS (avatars bucket)
+     * @param fileId - File ID (ObjectId as string)
+     * @returns Readable stream
+     */
+    async downloadAvatarFile(fileId: string): Promise<Readable | null> {
+        try {
+            const bucket = await this.getBucket("avatars");
+            if (!bucket) return null;
+
+            const downloadStream = bucket.openDownloadStream(
+                new ObjectId(fileId)
+            );
+
+            return downloadStream;
+        } catch (error) {
+            console.error("❌ Failed to download avatar from GridFS:", error);
             return null;
         }
     }
@@ -116,7 +181,7 @@ export class GridFSService {
         metadata?: Record<string, any>;
     } | null> {
         try {
-            const bucket = await this.getBucket();
+            const bucket = await this.getBucket("models3d");
             if (!bucket) return null;
 
             const files = await bucket
@@ -141,17 +206,65 @@ export class GridFSService {
     }
 
     /**
+     * Get avatar file metadata from GridFS (avatars bucket)
+     * @param fileId - File ID (ObjectId as string)
+     * @returns File info (filename, length, metadata, etc.)
+     */
+    async getAvatarFileInfo(fileId: string): Promise<{
+        filename: string;
+        length: number;
+        metadata?: Record<string, any>;
+    } | null> {
+        try {
+            const bucket = await this.getBucket("avatars");
+            if (!bucket) return null;
+
+            const files = await bucket
+                .find({ _id: new ObjectId(fileId) })
+                .toArray();
+
+            if (files.length === 0) {
+                console.error(`❌ Avatar not found in GridFS: ${fileId}`);
+                return null;
+            }
+
+            const file = files[0];
+            return {
+                filename: file.filename,
+                length: file.length,
+                metadata: file.metadata,
+            };
+        } catch (error) {
+            console.error("❌ Failed to get avatar info from GridFS:", error);
+            return null;
+        }
+    }
+
+    /**
      * Delete a file from GridFS
      * @param fileId - File ID (ObjectId as string)
      */
     async deleteFile(fileId: string): Promise<boolean> {
         try {
-            const bucket = await this.getBucket();
+            // Try avatars bucket first, then models3d bucket
+            let bucket = await this.getBucket("avatars");
             if (!bucket) return false;
 
-            await bucket.delete(new ObjectId(fileId));
-            console.log(`✅ File deleted from GridFS: ${fileId}`);
-            return true;
+            try {
+                await bucket.delete(new ObjectId(fileId));
+                console.log(`✅ File deleted from GridFS (avatars): ${fileId}`);
+                return true;
+            } catch {
+                // If not found in avatars, try models3d
+                bucket = await this.getBucket("models3d");
+                if (!bucket) return false;
+
+                await bucket.delete(new ObjectId(fileId));
+                console.log(
+                    `✅ File deleted from GridFS (models3d): ${fileId}`
+                );
+                return true;
+            }
         } catch (error) {
             console.error("❌ Failed to delete file from GridFS:", error);
             return false;
@@ -173,7 +286,7 @@ export class GridFSService {
         }>
     > {
         try {
-            const bucket = await this.getBucket();
+            const bucket = await this.getBucket("models3d");
             if (!bucket) return [];
 
             const files = await bucket.find(filter || {}).toArray();
