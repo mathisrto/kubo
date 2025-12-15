@@ -694,6 +694,7 @@ export class Scene extends ModelClass {
                 position: { x: 0, y: 0, z: 0 },
                 rotation: { x: 0, y: 0, z: 0 },
                 scale: { x: 1, y: 1, z: 1 },
+                materialId: null,
                 metadata: {
                     procedural: true,
                     geometry: "cube",
@@ -717,6 +718,7 @@ export class Scene extends ModelClass {
                 position: { x: 0, y: 0, z: 0 },
                 rotation: { x: 0, y: 0, z: 0 },
                 scale: { x: 1, y: 1, z: 1 },
+                materialId: null,
                 metadata: {
                     procedural: true,
                     geometry: "sphere",
@@ -740,6 +742,7 @@ export class Scene extends ModelClass {
                 position: { x: 0, y: 0, z: 0 },
                 rotation: { x: 0, y: 0, z: 0 },
                 scale: { x: 1, y: 1, z: 1 },
+                materialId: null,
                 metadata: {
                     procedural: true,
                     geometry: "cylinder",
@@ -763,6 +766,7 @@ export class Scene extends ModelClass {
                 position: { x: 0, y: 0, z: 0 },
                 rotation: { x: 0, y: 0, z: 0 },
                 scale: { x: 1, y: 1, z: 1 },
+                materialId: null,
                 metadata: {
                     procedural: true,
                     geometry: "plane",
