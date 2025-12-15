@@ -1,5 +1,4 @@
 import { User as FirebaseUser } from "firebase/auth";
-import { UserRepository } from "../database/graphql/repositories/UserRepository";
 import { Scene } from "./Scene";
 
 /**
@@ -41,10 +40,7 @@ export class User {
     private _displayName: UserType["displayName"];
     private _email: UserType["email"];
     private _photoURL: UserType["photoURL"];
-    private _scene: UserType["scene"] = null;
     private _apiKey?: UserType["apiKey"];
-
-    repository = new UserRepository();
 
     /**
      * Initializes a new instance of the User class using the provided FirebaseUser object.
@@ -101,15 +97,6 @@ export class User {
     }
 
     /**
-     * Gets the current scene associated with the user.
-     *
-     * @returns The user's current scene, as defined by the `scene` property in the `UserType` interface.
-     */
-    get scene(): UserType["scene"] {
-        return this._scene;
-    }
-
-    /**
      * Gets the API key associated with the user, if available.
      *
      * @returns The user's API key as defined in the UserType interface, or undefined if not set.
@@ -146,15 +133,6 @@ export class User {
     }
 
     /**
-     * Sets the current scene for the user.
-     *
-     * @param scene - The new scene to assign, as defined by the `scene` property of `UserType`.
-     */
-    set scene(scene: UserType["scene"]) {
-        this._scene = scene;
-    }
-
-    /**
      * Sets the API key for the user.
      * @param key - The new API key to assign to the user.
      */
@@ -165,22 +143,5 @@ export class User {
     updateUserFromFirebase(firebaseUser: FirebaseUser) {
         this.displayName = firebaseUser.displayName || this.displayName;
         this.photoURL = firebaseUser.photoURL || this.photoURL;
-    }
-
-    /* Methods */
-
-    /**
-     * Saves the current scene associated with the user.
-     *
-     * If a scene exists, this method serializes the scene data and logs it,
-     * along with the user's UID, to the console. Intended for integration
-     * with a backend service such as Firebase Firestore or RealtimeDB.
-     *
-     * @returns {Promise<void>} A promise that resolves when the save operation is complete.
-     */
-    async saveScene(): Promise<void> {
-        if (!this.scene) return;
-
-        this.scene.save();
     }
 }

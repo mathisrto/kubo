@@ -1,12 +1,4 @@
-import { ColorType } from "@/lib/class/Color";
 import { getModelsCollection } from "@/lib/database/client";
-
-export async function getAmbientLightColor(uid: string) {
-    const col = await getModelsCollection();
-    if (!col) return null;
-    const model = await col.findOne({ _id: uid });
-    return model?.scene?.ambientLight?.color;
-}
 
 export async function getAmbientLightIntensity(uid: string) {
     const col = await getModelsCollection();
@@ -15,26 +7,11 @@ export async function getAmbientLightIntensity(uid: string) {
     return model?.scene?.ambientLight?.intensity;
 }
 
-export async function getAmbientLightColorMultiplier(uid: string) {
+export async function getAmbientLightEnvironmentMap(uid: string) {
     const col = await getModelsCollection();
     if (!col) return null;
     const model = await col.findOne({ _id: uid });
-    return model?.scene?.ambientLight?.colorMultiplier;
-}
-
-export async function updateAmbientLightColor(uid: string, color: ColorType) {
-    const col = await getModelsCollection();
-    if (!col) return null;
-    const result = await col.updateOne(
-        { _id: uid },
-        {
-            $set: {
-                "scene.ambientLight.color": color,
-                "scene.updatedAt": new Date(),
-            },
-        }
-    );
-    return result.acknowledged;
+    return model?.scene?.ambientLight?.environmentMap;
 }
 
 export async function updateAmbientLightIntensity(
@@ -55,9 +32,9 @@ export async function updateAmbientLightIntensity(
     return result.acknowledged;
 }
 
-export async function updateAmbientLightColorMultiplier(
+export async function updateAmbientLightEnvironmentMap(
     uid: string,
-    colorMultiplier: number
+    environmentMap: string | undefined
 ) {
     const col = await getModelsCollection();
     if (!col) return null;
@@ -65,10 +42,18 @@ export async function updateAmbientLightColorMultiplier(
         { _id: uid },
         {
             $set: {
-                "scene.ambientLight.colorMultiplier": colorMultiplier,
+                "scene.ambientLight.environmentMap": environmentMap,
                 "scene.updatedAt": new Date(),
             },
         }
     );
     return result.acknowledged;
+}
+
+export async function getAmbientLight(uid: string) {
+    const col = await getModelsCollection();
+    if (!col) return null;
+    const id = uid;
+    const doc = await col.findOne({ _id: id });
+    return doc?.scene?.ambientLight || null;
 }

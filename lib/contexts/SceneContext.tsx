@@ -8,95 +8,144 @@ import React, {
     useRef,
     useState,
 } from "react";
+import { SceneRepository } from "../database/graphql/repositories/SceneRepository";
 import { useUser } from "./UserContext";
 
+/* ---------------- TYPES ---------------- */
 type SceneContextType = {
     scene: Scene | null;
     isLoading: boolean;
-    setScene: (scene: Scene | null) => void;
+    updateScene: (fn: (scene: Scene) => void) => void;
     reloadScene: () => Promise<void>;
+    resetScene: () => Promise<void>;
 };
 
+/* ---------------- CONTEXT ---------------- */
 const SceneContext = createContext<SceneContextType | undefined>(undefined);
 
+/* ---------------- PROVIDER ---------------- */
 export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
     const { user } = useUser();
-    const [scene, setScene] = useState<Scene | null>(null);
+    const [sceneState, setSceneState] = useState<Scene | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    const sceneRef = useRef<Scene | null>(null);
     const loadedUserRef = useRef<string | null>(null);
 
-    // 🧹 Cleanup de la scène quand elle change ou au démontage
+    const repo = new SceneRepository();
+
+    /* 🧹 Cleanup Scene */
     useEffect(() => {
         return () => {
-            if (scene) {
-                scene.destroy();
-            }
+            sceneRef.current?.destroy();
+            sceneRef.current = null;
         };
-    }, [scene]);
+    }, []);
 
-    // 🔁 Quand le user change, on recharge sa scène
+    /* 🔁 Load scene when user changes */
     useEffect(() => {
         const loadScene = async () => {
             if (!user) {
-                setScene(null);
+                sceneRef.current?.destroy();
+                sceneRef.current = null;
+                setSceneState(null);
                 setIsLoading(false);
                 loadedUserRef.current = null;
                 return;
             }
 
-            // ⚡ Empêche de recharger pour le même user
-            if (loadedUserRef.current === user.uid) {
-                return;
-            }
+            if (loadedUserRef.current === user.uid) return;
 
             setIsLoading(true);
-
-            const repository = user["repository"];
-            const hasScene = await repository.hasScene();
+            const hasScene = await repo.hasScene();
             if (!hasScene) {
-                await repository.createAndResetScene();
+                await repo.createAndResetScene();
             }
 
-            const sceneData = await repository.getScene();
+            const data = await repo.getScene();
 
-            console.log("Scene data loaded:", sceneData);
-            const newScene = new Scene(sceneData);
-            setScene(newScene);
-            user.scene = newScene; // synchronisation
-            setIsLoading(false);
+            // Crée la Scene moteur
+            sceneRef.current?.destroy();
+            sceneRef.current = new Scene(data);
+
+            // Stocke l'instance dans le state pour déclencher le rerender React
+            setSceneState(sceneRef.current);
+
             loadedUserRef.current = user.uid;
-
-            console.log(`Scene loaded for user ${user.scene}`);
+            setIsLoading(false);
         };
 
         loadScene();
     }, [user]);
 
+    /* ✨ API : updateScene */
+    const updateScene = (fn: (scene: Scene) => void | Promise<void>) => {
+        if (!sceneRef.current) return;
+
+        console.log("updateScene called");
+        const maybePromise = fn(sceneRef.current);
+
+        // Si la fonction est async, attendre avant de rerender
+        if (maybePromise instanceof Promise) {
+            maybePromise.then(() => {
+                console.log("Setting scene state after promise");
+                // Créer une nouvelle instance pour forcer le re-render
+                const newScene = new Scene(sceneRef.current!.serialize());
+                sceneRef.current = newScene;
+                setSceneState(newScene);
+            });
+        } else {
+            console.log("Setting scene state immediately");
+            // Créer une nouvelle instance pour forcer le re-render
+            const newScene = new Scene(sceneRef.current.serialize());
+            sceneRef.current = newScene;
+            setSceneState(newScene);
+        }
+    };
+
+    /* 🔄 reloadScene */
     const reloadScene = async () => {
         if (!user) return;
         setIsLoading(true);
-        const repository = user["repository"];
-        const sceneData = await repository.getScene();
-        const newScene = new Scene(sceneData);
-        setScene(newScene);
+        const data = await repo.getScene();
+
+        sceneRef.current?.destroy();
+        sceneRef.current = new Scene(data);
+        setSceneState(sceneRef.current);
+        setIsLoading(false);
+    };
+
+    const resetScene = async () => {
+        if (!user) return;
+        setIsLoading(true);
+        await repo.createAndResetScene();
+        const data = await repo.getScene();
+        sceneRef.current?.destroy();
+        sceneRef.current = new Scene(data);
+        setSceneState(sceneRef.current);
         setIsLoading(false);
     };
 
     return (
         <SceneContext.Provider
-            value={{ scene, isLoading, setScene, reloadScene }}
+            value={{
+                scene: sceneState,
+                isLoading,
+                updateScene,
+                reloadScene,
+                resetScene,
+            }}
         >
             {children}
         </SceneContext.Provider>
     );
 };
 
+/* ---------------- HOOK ---------------- */
 export const useScene = () => {
     const ctx = useContext(SceneContext);
-    if (!ctx) {
-        throw new Error("useScene must be used within a SceneProvider");
-    }
+    if (!ctx) throw new Error("useScene must be used within a SceneProvider");
     return ctx;
 };

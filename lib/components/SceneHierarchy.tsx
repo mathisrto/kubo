@@ -2,14 +2,14 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useScene } from "@/lib/contexts/SceneContext";
-import { useViewport } from "@/lib/contexts/ViewportContext";
 import { TrashIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useTransform } from "../contexts/TransformContext";
 
 export const SceneHierarchy = () => {
     const t = useTranslations("Dashboard");
-    const { scene, isLoading } = useScene();
-    const { selectedObject, setSelectedObject, triggerUpdate } = useViewport();
+    const { scene, isLoading, updateScene } = useScene();
+    const { selectedObject, setSelectedObject } = useTransform();
 
     return (
         <Card className="h-full overflow-auto">
@@ -41,9 +41,14 @@ export const SceneHierarchy = () => {
                                     <li
                                         key={`model-${idx}`}
                                         className="cursor-pointer hover:text-primary text-sm"
-                                        onClick={() =>
-                                            setSelectedObject(model.id || null)
-                                        }
+                                        onClick={() => {
+                                            console.log(
+                                                "Hierarchy click on model:",
+                                                model.id,
+                                                model.name
+                                            );
+                                            setSelectedObject(model.id || null);
+                                        }}
                                     >
                                         <div className="flex justify-between items-center">
                                             {" "}
@@ -53,6 +58,11 @@ export const SceneHierarchy = () => {
                                                 className="w-4 h-auto"
                                                 onClick={async (e) => {
                                                     e.stopPropagation(); // Prevent selecting the model
+                                                    console.log(
+                                                        "Deleting model:",
+                                                        model.id,
+                                                        model.name
+                                                    );
                                                     // Deselect FIRST if the deleted model was selected
                                                     if (
                                                         selectedObject ===
@@ -69,10 +79,31 @@ export const SceneHierarchy = () => {
                                                         );
                                                     }
                                                     if (model.id) {
-                                                        scene.removeModel(
-                                                            model.id
+                                                        console.log(
+                                                            "Calling updateScene to remove model"
                                                         );
-                                                        triggerUpdate();
+                                                        updateScene(() => {
+                                                            if (
+                                                                selectedObject ===
+                                                                model.id
+                                                            ) {
+                                                                setSelectedObject(
+                                                                    null
+                                                                );
+                                                            }
+                                                            scene.removeModel(
+                                                                model.id
+                                                            );
+                                                            console.log(
+                                                                "Model removed, new models3d length:",
+                                                                scene.models3d
+                                                                    .length
+                                                            );
+                                                        });
+                                                    } else {
+                                                        console.log(
+                                                            "Model has no id, cannot remove"
+                                                        );
                                                     }
                                                 }}
                                             />

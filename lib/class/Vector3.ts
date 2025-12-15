@@ -225,4 +225,10 @@ export class Vector3 extends ModelClass {
     equals(v: Vector3Type): boolean {
         return this.x === v.x && this.y === v.y && this.z === v.z;
     }
+
+    updateFromState(state: Vector3Type): void {
+        this.x = state.x;
+        this.y = state.y;
+        this.z = state.z;
+    }
 }

@@ -1,3 +1,4 @@
+import { Model3DRepository } from "../database/graphql/repositories/Model3DRepository";
 import { ModelClass } from "./ModelClass";
 import { Vector3, Vector3Type } from "./Vector3";
 
@@ -27,14 +28,14 @@ export enum MODEL_FILE_FORMAT {
  * @property metadata - Additional metadata (file size, bounding box, etc.)
  */
 export type Model3DType = {
-    id?: string;
+    id: string | null;
     name: string;
     fileId: string; // GridFS file ID
     format: MODEL_FILE_FORMAT;
     position: Vector3Type;
     rotation: Vector3Type;
     scale: Vector3Type;
-    materialId?: string;
+    materialId: string | null;
     metadata?: {
         fileSize?: number;
         fileName?: string;
@@ -65,24 +66,24 @@ export type Model3DType = {
  * ```
  */
 export class Model3D extends ModelClass {
-    private _id?: string;
-    private _name: string;
-    private _fileId: string;
-    private _format: MODEL_FILE_FORMAT;
+    private _id: Model3DType["id"];
+    private _name: Model3DType["name"];
+    private _fileId: Model3DType["fileId"];
+    private _format: Model3DType["format"];
     private _positionVector: Vector3;
     private _rotationVector: Vector3;
     private _scaleVector: Vector3;
-    private _materialId?: string;
+    private _materialId: Model3DType["materialId"];
     private _metadata?: Model3DType["metadata"];
-    private _createdAt?: Date;
-    private _updatedAt?: Date;
+    private _createdAt?: Model3DType["createdAt"];
+    private _updatedAt?: Model3DType["updatedAt"];
 
-    private repository =
-        new (require("../database/graphql/repositories/Model3DRepository").Model3DRepository)();
+    private repository: Model3DRepository;
 
-    constructor(data: Model3DType) {
+    constructor(data: Model3DType, repository: Model3DRepository) {
         super();
         this._id = data.id;
+        this.repository = repository;
         this._name = data.name;
         this._fileId = data.fileId;
         this._format = data.format;
@@ -102,7 +103,7 @@ export class Model3D extends ModelClass {
 
     /* ==================== GETTERS ==================== */
 
-    get id(): string | undefined {
+    get id(): string | null {
         return this._id;
     }
 
@@ -130,7 +131,7 @@ export class Model3D extends ModelClass {
         return this._scaleVector;
     }
 
-    get materialId(): string | undefined {
+    get materialId(): string | null {
         return this._materialId;
     }
 
@@ -163,7 +164,7 @@ export class Model3D extends ModelClass {
         this.markFieldDirty("format");
     }
 
-    set materialId(value: string | undefined) {
+    set materialId(value: string | null) {
         this._materialId = value;
         this.markFieldDirty("materialId");
     }
@@ -260,7 +261,7 @@ export class Model3D extends ModelClass {
      * Clone this model
      */
     clone(): Model3D {
-        return new Model3D(this.serialize());
+        return new Model3D(this.serialize(), this.repository);
     }
 
     /**
@@ -355,5 +356,16 @@ export class Model3D extends ModelClass {
         }
 
         this.clearDirtyFields();
+    }
+
+    updateFromState(state: Model3DType): void {
+        this.name = state.name;
+        this.fileId = state.fileId;
+        this.format = state.format;
+        this.positionVector.updateFromState(state.position);
+        this.rotationVector.updateFromState(state.rotation);
+        this.scaleVector.updateFromState(state.scale);
+        this.materialId = state.materialId;
+        this.metadata = state.metadata;
     }
 }

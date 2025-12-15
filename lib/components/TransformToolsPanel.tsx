@@ -10,21 +10,11 @@ import {
 } from "@/components/ui/tooltip";
 import { Maximize2, MousePointer2, Move, RotateCw } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useTransform } from "../contexts/TransformContext";
 
-interface TransformToolsPanelProps {
-    onSelectTool: () => void;
-    onTranslateTool: () => void;
-    onRotateTool: () => void;
-    onScaleTool: () => void;
-}
-
-export const TransformToolsPanel = ({
-    onSelectTool,
-    onTranslateTool,
-    onRotateTool,
-    onScaleTool,
-}: TransformToolsPanelProps) => {
+export const TransformToolsPanel = () => {
     const t = useTranslations("Dashboard");
+    const { setTransformMode } = useTransform();
 
     return (
         <div>
@@ -38,7 +28,7 @@ export const TransformToolsPanel = ({
                             <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={onSelectTool}
+                                onClick={() => setTransformMode(null)}
                             >
                                 <MousePointer2 className="h-5 w-5" />
                             </Button>
@@ -55,7 +45,7 @@ export const TransformToolsPanel = ({
                             <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={onTranslateTool}
+                                onClick={() => setTransformMode("translate")}
                             >
                                 <Move className="h-5 w-5" />
                             </Button>
@@ -72,7 +62,7 @@ export const TransformToolsPanel = ({
                             <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={onRotateTool}
+                                onClick={() => setTransformMode("rotate")}
                             >
                                 <RotateCw className="h-5 w-5" />
                             </Button>
@@ -89,7 +79,7 @@ export const TransformToolsPanel = ({
                             <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={onScaleTool}
+                                onClick={() => setTransformMode("scale")}
                             >
                                 <Maximize2 className="h-5 w-5" />
                             </Button>

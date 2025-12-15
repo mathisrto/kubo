@@ -1,8 +1,7 @@
 "use client";
 
 import ThreeScene from "@/lib/components/ThreeRenderer";
-import { SceneProvider, useScene } from "@/lib/contexts/SceneContext";
-import { ViewportProvider, useViewport } from "@/lib/contexts/ViewportContext";
+import { useScene } from "@/lib/contexts/SceneContext";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +17,8 @@ import { DashboardNavbar } from "@/lib/components/DashboardNavbar";
 import { ObjectProperties } from "@/lib/components/ObjectProperties";
 import { SceneHierarchy } from "@/lib/components/SceneHierarchy";
 import { TransformToolsPanel } from "@/lib/components/TransformToolsPanel";
+import { useTransform } from "@/lib/contexts/TransformContext";
+import { useViewport } from "@/lib/contexts/ViewportContext";
 import {
     ChevronLeft,
     ChevronRight,
@@ -28,19 +29,15 @@ import {
     Scale,
 } from "lucide-react";
 
-const DashboardContent = () => {
-    const { scene } = useScene();
+const DashboardPage = () => {
+    const { updateScene } = useScene();
     const {
-        selectedObject,
-        setSelectedObject,
-        transformMode,
-        setTransformMode,
         leftSidebarOpen,
         setLeftSidebarOpen,
         rightSidebarOpen,
         setRightSidebarOpen,
-        triggerUpdate,
     } = useViewport();
+    const { selectedObject, transformMode, setTransformMode } = useTransform();
 
     return (
         <div className="flex h-screen w-full flex-col bg-background text-foreground">
@@ -132,35 +129,28 @@ const DashboardContent = () => {
                             <div className="flex-1 space-y-6 overflow-auto">
                                 <CreateObjectsPanel
                                     onCreateCube={async () => {
-                                        await scene?.createCube();
-                                        triggerUpdate();
+                                        updateScene(async (scene) => {
+                                            await scene.createCube();
+                                        });
                                     }}
                                     onCreateSphere={async () => {
-                                        await scene?.createSphere();
-                                        triggerUpdate();
+                                        updateScene(async (scene) => {
+                                            await scene.createSphere();
+                                        });
                                     }}
                                     onCreateCylinder={async () => {
-                                        await scene?.createCylinder();
-                                        triggerUpdate();
+                                        updateScene(async (scene) => {
+                                            await scene.createCylinder();
+                                        });
                                     }}
                                     onCreatePlane={async () => {
-                                        await scene?.createPlane();
-                                        triggerUpdate();
+                                        updateScene(async (scene) => {
+                                            await scene.createPlane();
+                                        });
                                     }}
                                 />
                                 <Separator />
-                                <TransformToolsPanel
-                                    onSelectTool={() => setTransformMode(null)}
-                                    onTranslateTool={() =>
-                                        setTransformMode("translate")
-                                    }
-                                    onRotateTool={() =>
-                                        setTransformMode("rotate")
-                                    }
-                                    onScaleTool={() =>
-                                        setTransformMode("scale")
-                                    }
-                                />
+                                <TransformToolsPanel />
                             </div>
                         </div>
                     ) : (
@@ -270,8 +260,9 @@ const DashboardContent = () => {
                                             variant="ghost"
                                             size="icon"
                                             onClick={async () => {
-                                                await scene?.createCube();
-                                                triggerUpdate();
+                                                updateScene(async (scene) => {
+                                                    await scene.createCube();
+                                                });
                                             }}
                                         >
                                             <Cuboid className="h-4 w-4" />
@@ -287,16 +278,6 @@ const DashboardContent = () => {
                 </div>
             </div>
         </div>
-    );
-};
-
-const DashboardPage = () => {
-    return (
-        <ViewportProvider>
-            <SceneProvider>
-                <DashboardContent />
-            </SceneProvider>
-        </ViewportProvider>
     );
 };
 

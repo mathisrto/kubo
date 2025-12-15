@@ -56,6 +56,8 @@ export abstract class ModelClass {
         children.forEach((child) => this.registerChild(child));
     }
 
+    abstract updateFromState(state: unknown): void;
+
     clearDirtyFields(): void {
         this._dirtyFields.clear();
         // Ne pas émettre d'événement pour éviter une boucle infinie avec scheduleAutoSave

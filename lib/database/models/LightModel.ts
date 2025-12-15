@@ -1,7 +1,9 @@
 import { ColorType } from "@/lib/class/Color";
+import { LightType } from "@/lib/class/Light";
 import { Vector3Type } from "@/lib/class/Vector3";
 import { LIGHT_TYPES } from "@/lib/constants";
 import { getModelsCollection } from "@/lib/database/client";
+import { ObjectId } from "mongodb";
 
 export async function getLightById(uid: string, id: string) {
     const col = await getModelsCollection();
@@ -203,6 +205,49 @@ export async function updateLightColorMultiplier(
                 "scene.lights.$.colorMultiplier": colorMultiplier,
                 "scene.updatedAt": new Date(),
             },
+        }
+    );
+    return result.acknowledged;
+}
+
+export async function getLights(uid: string) {
+    const col = await getModelsCollection();
+    if (!col) return null;
+    const id = uid;
+    const doc = await col.findOne({ _id: id });
+    if (!doc?.scene?.lights) return [];
+    return doc.scene.lights;
+}
+
+export async function createLight(uid: string, light: LightType) {
+    const col = await getModelsCollection();
+    if (!col) return null;
+
+    // Generate ID without modifying the original object
+    const newId = new ObjectId().toString();
+    const lightWithId = { ...light, id: newId };
+
+    const id = uid;
+    await col.updateOne(
+        { _id: id }, // directement l'ID utilisateur
+        {
+            $push: { ["scene.lights"]: lightWithId },
+            $set: { "scene.updatedAt": new Date() },
+        },
+        { upsert: true } // au cas où la scène n'existe pas encore
+    );
+    return newId;
+}
+
+export async function removeLight(uid: string, lightId: string) {
+    const col = await getModelsCollection();
+    if (!col) return null;
+    const id = uid;
+    const result = await col.updateOne(
+        { _id: id },
+        {
+            $pull: { "scene.lights": { id: lightId } },
+            $set: { "scene.updatedAt": new Date() },
         }
     );
     return result.acknowledged;

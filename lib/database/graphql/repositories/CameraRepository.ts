@@ -1,3 +1,5 @@
+import { CameraType } from "@/lib/class/Camera";
+import { CAMERA_TYPES } from "@/lib/constants";
 import { gql } from "@apollo/client";
 import { Vector3Type } from "../../../class/Vector3";
 import { apolloClient } from "../client";
@@ -21,26 +23,6 @@ export class CameraRepository {
                 getCameraPosition: Vector3Type;
             }
         ).getCameraPosition;
-    }
-
-    public async getCameraRotation(): Promise<Vector3Type> {
-        const query = gql`
-            query getCameraRotation {
-                getCameraRotation {
-                    x
-                    y
-                    z
-                }
-            }
-        `;
-        const result = await apolloClient.query({
-            query,
-        });
-        return (
-            result.data as {
-                getCameraRotation: Vector3Type;
-            }
-        ).getCameraRotation;
     }
 
     public async getCameraTarget(): Promise<Vector3Type> {
@@ -127,6 +109,31 @@ export class CameraRepository {
         ).getCameraType;
     }
 
+    async getCamera() {
+        const query = gql`
+            query getCamera {
+                getCamera {
+                    position {
+                        x
+                        y
+                        z
+                    }
+                    rotation {
+                        x
+                        y
+                        z
+                    }
+                    fov
+                    near
+                    far
+                    type
+                }
+            }
+        `;
+        const res = await apolloClient.query({ query });
+        return (res.data as { getCamera: CameraType }).getCamera;
+    }
+
     public async updateCameraPosition(position: Vector3Type): Promise<boolean> {
         const mutation = gql`
             mutation updateCameraPosition($position: Vector3Input!) {
@@ -144,25 +151,6 @@ export class CameraRepository {
                 updateCameraPosition: { acknowledged: boolean };
             }
         ).updateCameraPosition.acknowledged;
-    }
-
-    public async updateCameraRotation(rotation: Vector3Type): Promise<boolean> {
-        const mutation = gql`
-            mutation updateCameraRotation($rotation: Vector3Input!) {
-                updateCameraRotation(rotation: $rotation) {
-                    acknowledged
-                }
-            }
-        `;
-        const result = await apolloClient.mutate({
-            mutation,
-            variables: { rotation },
-        });
-        return (
-            result.data as {
-                updateCameraRotation: { acknowledged: boolean };
-            }
-        ).updateCameraRotation.acknowledged;
     }
 
     public async updateCameraTarget(target: Vector3Type): Promise<boolean> {
@@ -241,9 +229,7 @@ export class CameraRepository {
         ).updateCameraFar.acknowledged;
     }
 
-    public async updateCameraType(
-        type: "PERSPECTIVE" | "ORTHOGRAPHIC"
-    ): Promise<boolean> {
+    public async updateCameraType(type: CAMERA_TYPES): Promise<boolean> {
         const mutation = gql`
             mutation updateCameraType($type: CameraType!) {
                 updateCameraType(type: $type) {

@@ -15,10 +15,11 @@ import {
 } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Outline } from "@react-three/postprocessing";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { CAMERA_TYPES } from "../constants";
 import { useScene } from "../contexts/SceneContext";
-import { useViewport } from "../contexts/ViewportContext";
+import { useTransform } from "../contexts/TransformContext";
 
 /**
  * Composant pour un modèle 3D individuel avec gestion du hover et de la sélection
@@ -26,9 +27,11 @@ import { useViewport } from "../contexts/ViewportContext";
 function Model3D({
     model,
     isTransforming,
+    onMeshCreated,
 }: {
     model: any;
     isTransforming?: boolean;
+    onMeshCreated: (id: string, mesh: THREE.Mesh) => void;
 }) {
     const [hovered, setHover] = useState(false);
     const meshRef = useRef<THREE.Mesh>(null);
@@ -37,6 +40,12 @@ function Model3D({
     const geometry = model.metadata?.geometry;
 
     useCursor(hovered && !isTransforming);
+
+    useEffect(() => {
+        if (meshRef.current) {
+            onMeshCreated(model.id, meshRef.current);
+        }
+    }, [model.id, onMeshCreated]);
 
     return (
         <mesh
@@ -86,96 +95,159 @@ function Model3D({
 }
 
 /**
+ * Scene content - everything inside the Canvas
+ */
+/**
  * Composant qui observe la sélection et met à jour le state parent
  */
 function SelectionObserver({
     onSelectionChange,
 }: {
-    onSelectionChange: (meshes: THREE.Mesh[]) => void;
+    onSelectionChange: (mesh: THREE.Mesh | undefined) => void;
 }) {
     const selected = useSelect();
+    const { selectedObject, setSelectedObject } = useTransform();
 
     useEffect(() => {
         if (!selected || selected.length === 0) {
             console.log("Selection changed: empty");
-            onSelectionChange([]);
+            setSelectedObject(null);
+            onSelectionChange(undefined);
             return;
         }
 
         // Filtrer pour ne garder que les mesh valides
-        const validMeshes = selected.filter(
-            (obj): obj is THREE.Mesh =>
-                obj &&
-                obj instanceof THREE.Mesh &&
-                obj.userData &&
-                obj.userData.model
+        const validMesh = selected.filter((obj): obj is THREE.Mesh => {
+            return obj instanceof THREE.Mesh;
+        })[0];
+        setSelectedObject(validMesh?.userData.id || null);
+        console.log(
+            "Selection changed: selected mesh id =",
+            validMesh?.userData.id || null
         );
-
-        console.log("Selection changed:", validMeshes.length, "valid meshes");
-        onSelectionChange(validMeshes);
+        onSelectionChange(validMesh);
     }, [selected, onSelectionChange]);
 
     return null;
 }
 
-import sunset from "@/data/images/venice_sunset.jpg";
-import { CAMERA_TYPES } from "../constants";
-
-/**
- * Scene content - everything inside the Canvas
- */
 function SceneContent() {
     const { scene } = useScene();
-    const {
-        selectedObject,
-        transformMode,
-        environmentIntensity,
-        environmentImage,
-    } = useViewport();
+    const { transformMode, selectedObject } = useTransform();
     const [isControlsInitialized, setIsControlsInitialized] = useState(false);
-    const [selectedMeshes, setSelectedMeshes] = useState<THREE.Mesh[]>([]);
+    const [selectedMesh, setSelectedMesh] = useState<THREE.Mesh>();
     const [isTransforming, setIsTransforming] = useState(false);
+    const [meshes, setMeshes] = useState<Record<string, THREE.Mesh>>({});
+
+    const [, setSelected] = useSelect();
+
+    useEffect(() => {
+        // Lorsque selectedObject change, mettre à jour selectedMesh
+        if (selectedObject) {
+            const mesh = meshes[selectedObject];
+            setSelectedMesh(mesh);
+        }
+    }, [selectedObject, meshes, setSelected]);
 
     if (!scene) return null;
 
-    // Map environment names to actual image paths
-    const environmentMap: Record<string, string> = {
-        venice_sunset: sunset.src,
-        studio: sunset.src, // TODO: Add actual studio environment
-        warehouse: sunset.src, // TODO: Add actual warehouse environment
-        forest: sunset.src, // TODO: Add actual forest environment
-    };
+    // État pour l'URL de l'environnement validée
+    const [validatedEnvUrl, setValidatedEnvUrl] = useState<string>(
+        "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/venice_sunset_1k.hdr"
+    );
 
-    const currentEnvironment = environmentMap[environmentImage] || sunset.src;
+    // Valider et charger l'environnement
+    useEffect(() => {
+        const url = scene.ambientLight.environmentMap;
+        if (!url) {
+            setValidatedEnvUrl(
+                "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/venice_sunset_1k.hdr"
+            );
+            return;
+        }
+
+        // Extensions supportées
+        const SUPPORTED_EXTENSIONS = [".hdr", ".exr", ".jpg", ".jpeg", ".png"];
+        const isSupported = SUPPORTED_EXTENSIONS.some((ext) =>
+            url.toLowerCase().endsWith(ext)
+        );
+
+        if (!isSupported) {
+            console.warn(
+                "Extension non supportée, fallback sur sunset.jpg",
+                url
+            );
+            setValidatedEnvUrl(
+                "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/venice_sunset_1k.hdr"
+            );
+            return;
+        }
+
+        // Tester le chargement avec TextureLoader
+        const loader = new THREE.TextureLoader();
+        loader.load(
+            url,
+            (texture) => {
+                console.log("Environnement chargé avec succès:", url);
+                setValidatedEnvUrl(url);
+            },
+            undefined, // onProgress
+            (error) => {
+                console.warn(
+                    "Erreur de chargement de l'environnement, fallback sur sunset.jpg",
+                    url,
+                    error
+                );
+                setValidatedEnvUrl(
+                    "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/venice_sunset_1k.hdr"
+                );
+            }
+        );
+    }, [scene.ambientLight.environmentMap]);
+
+    const handleMeshCreated = useCallback((id: string, mesh: THREE.Mesh) => {
+        setMeshes((prev) => ({
+            ...prev,
+            [id]: mesh,
+        }));
+    }, []);
+
+    const handleSelectionChange = useCallback(
+        (mesh: THREE.Mesh | undefined) => {
+            setSelectedMesh(mesh);
+        },
+        []
+    );
 
     return (
         <>
             <Environment
-                files={currentEnvironment}
+                files={validatedEnvUrl}
                 background
                 backgroundBlurriness={0.5}
-                environmentIntensity={environmentIntensity}
+                environmentIntensity={scene.ambientLight.intensity}
             />
             <Select>
-                <SelectionObserver onSelectionChange={setSelectedMeshes} />
-                {scene.models3d.map((model) => (
+                <SelectionObserver onSelectionChange={handleSelectionChange} />
+                {scene.models3d?.map((model) => (
                     <Model3D
                         key={model.id}
                         model={model}
                         isTransforming={isTransforming}
+                        onMeshCreated={handleMeshCreated}
                     />
                 ))}
             </Select>
 
             {/* Transform Controls */}
-            {selectedMeshes.length > 0 && transformMode && (
+            {selectedMesh && transformMode && (
                 <TransformControls
-                    object={selectedMeshes[0]}
+                    object={selectedMesh}
                     mode={transformMode}
                     onMouseDown={() => setIsTransforming(true)}
                     onMouseUp={() => setIsTransforming(false)}
                     onObjectChange={() => {
-                        const mesh = selectedMeshes[0];
+                        const mesh = selectedMesh;
                         const model = mesh.userData.model;
                         if (model) {
                             model.positionVector.x = mesh.position.x;
@@ -279,7 +351,7 @@ function SceneContent() {
             {/* Post-processing Outline - doit être après tous les objets */}
             <EffectComposer multisampling={8} autoClear={false}>
                 <Outline
-                    selection={selectedMeshes}
+                    selection={selectedMesh ? [selectedMesh] : []}
                     visibleEdgeColor={0xffff00}
                     hiddenEdgeColor={0xffff00}
                     edgeStrength={100}

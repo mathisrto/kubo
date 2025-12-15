@@ -217,4 +217,11 @@ export class Color extends ModelClass {
         const b = this.b.toString(16).padStart(2, "0");
         return `#${r}${g}${b}`;
     }
+
+    updateFromState(state: ColorType): void {
+        this.r = state.r;
+        this.g = state.g;
+        this.b = state.b;
+        this.a = state.a;
+    }
 }

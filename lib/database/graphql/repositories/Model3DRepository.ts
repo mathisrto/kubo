@@ -4,7 +4,7 @@ import { Vector3Type } from "../../../class/Vector3";
 import { apolloClient } from "../client";
 
 export class Model3DRepository {
-    async getModel3DById(id: string): Promise<Model3DType | null> {
+    async getModel3DById(id: string): Promise<Model3DType> {
         const query = gql`
             query getModel3DById($id: String!) {
                 getModel3DById(id: $id) {
@@ -35,10 +35,7 @@ export class Model3DRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getModel3DById: Model3DType | null })
-                .getModel3DById || null
-        );
+        return (result.data as { getModel3DById: Model3DType }).getModel3DById;
     }
 
     async updateModel3DName(id: string, name: string): Promise<boolean> {
@@ -212,25 +209,21 @@ export class Model3DRepository {
         );
     }
 
-    async createModel3D(
-        name: string,
-        fileId: string,
-        format: MODEL_FILE_FORMAT
-    ): Promise<string | null> {
+    async createModel3D(model3d: Model3DType): Promise<string> {
         const mutation = gql`
-            mutation createModel3D(
-                $name: String!
-                $fileId: String!
-                $format: ModelFileFormat!
-            ) {
-                createModel3D(name: $name, fileId: $fileId, format: $format)
+            mutation createModel3D($model3d: Model3DInput!) {
+                createModel3D(model3d: $model3d)
             }
         `;
+
+        console.log("Creating Model3D:", model3d);
         const result = await apolloClient.mutate({
             mutation,
-            variables: { name, fileId, format },
+            variables: {
+                model3d,
+            },
         });
-        return (result.data as { createModel3D: string }).createModel3D || null;
+        return (result.data as { createModel3D: string }).createModel3D;
     }
 
     async removeModel3D(modelId: string): Promise<boolean> {
@@ -252,5 +245,40 @@ export class Model3DRepository {
                 }
             ).removeModel3D?.acknowledged || false
         );
+    }
+    async getModel3Ds(): Promise<Model3DType[]> {
+        const query = gql`
+            query getModel3Ds {
+                getModel3Ds {
+                    id
+                    name
+                    fileId
+                    format
+                    position {
+                        x
+                        y
+                        z
+                    }
+                    rotation {
+                        x
+                        y
+                        z
+                    }
+                    scale {
+                        x
+                        y
+                        z
+                    }
+                    materialId
+                }
+            }
+        `;
+        // Force network request to avoid stale cache
+        const res = await apolloClient.query({
+            query,
+            fetchPolicy: "network-only",
+        });
+        const data = (res.data as { getModel3Ds: any[] }).getModel3Ds;
+        return data;
     }
 }

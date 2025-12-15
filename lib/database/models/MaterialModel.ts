@@ -1,5 +1,7 @@
 import { ColorType } from "@/lib/class/Color";
+import { MaterialType } from "@/lib/class/Material";
 import { getModelsCollection } from "@/lib/database/client";
+import { ObjectId } from "mongodb";
 
 export async function getMaterialById(uid: string, id: string) {
     const col = await getModelsCollection();
@@ -176,6 +178,49 @@ export async function updateMaterialEmissive(
                 "scene.materials.$.emissive": emissive,
                 "scene.updatedAt": new Date(),
             },
+        }
+    );
+    return result.acknowledged;
+}
+
+export async function getMaterials(uid: string) {
+    const col = await getModelsCollection();
+    if (!col) return null;
+    const id = uid;
+    const doc = await col.findOne({ _id: id });
+    if (!doc?.scene?.materials) return [];
+    return doc.scene.materials;
+}
+
+export async function createMaterial(uid: string, material: MaterialType) {
+    const col = await getModelsCollection();
+    if (!col) return null;
+
+    // Generate ID without modifying the original object
+    const newId = new ObjectId().toString();
+    const materialWithId = { ...material, id: newId };
+
+    const id = uid;
+    await col.updateOne(
+        { _id: id }, // directement l'ID utilisateur
+        {
+            $push: { ["scene.materials"]: materialWithId },
+            $set: { "scene.updatedAt": new Date() },
+        },
+        { upsert: true } // au cas où la scène n'existe pas encore
+    );
+    return newId;
+}
+
+export async function removeMaterial(uid: string, materialId: string) {
+    const col = await getModelsCollection();
+    if (!col) return null;
+    const id = uid;
+    const result = await col.updateOne(
+        { _id: id },
+        {
+            $pull: { "scene.materials": { id: materialId } },
+            $set: { "scene.updatedAt": new Date() },
         }
     );
     return result.acknowledged;

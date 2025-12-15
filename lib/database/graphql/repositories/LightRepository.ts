@@ -5,7 +5,7 @@ import { Vector3Type } from "../../../class/Vector3";
 import { apolloClient } from "../client";
 
 export class LightRepository {
-    async getLightById(id: string): Promise<LightType | null> {
+    async getLightById(id: string): Promise<LightType> {
         // Implement GraphQL query to get light by ID
         const query = gql`
             query getLightById($id: String!) {
@@ -33,13 +33,10 @@ export class LightRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getLightById: LightType | null }).getLightById ||
-            null
-        );
+        return (result.data as { getLightById: LightType }).getLightById;
     }
 
-    async getLightName(id: string): Promise<string | null> {
+    async getLightName(id: string): Promise<string> {
         // Implement GraphQL query to get light name
         const query = gql`
             query getLightName($id: String!) {
@@ -50,13 +47,10 @@ export class LightRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getLightName: string | null }).getLightName ||
-            null
-        );
+        return (result.data as { getLightName: string }).getLightName;
     }
 
-    async getLightPosition(id: string): Promise<Vector3Type | null> {
+    async getLightPosition(id: string): Promise<Vector3Type> {
         // Implement GraphQL query to get light position
         const query = gql`
             query getLightPosition($id: String!) {
@@ -71,13 +65,11 @@ export class LightRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getLightPosition: Vector3Type | null })
-                .getLightPosition || null
-        );
+        return (result.data as { getLightPosition: Vector3Type })
+            .getLightPosition;
     }
 
-    async getLightColor(id: string): Promise<ColorType | null> {
+    async getLightColor(id: string): Promise<ColorType> {
         // Implement GraphQL query to get light color
         const query = gql`
             query getLightColor($id: String!) {
@@ -93,13 +85,10 @@ export class LightRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getLightColor: ColorType | null })
-                .getLightColor || null
-        );
+        return (result.data as { getLightColor: ColorType }).getLightColor;
     }
 
-    async getLightIntensity(id: string): Promise<number | null> {
+    async getLightIntensity(id: string): Promise<number> {
         // Implement GraphQL query to get light intensity
         const query = gql`
             query getLightIntensity($id: String!) {
@@ -110,13 +99,10 @@ export class LightRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getLightIntensity: number | null })
-                .getLightIntensity || null
-        );
+        return (result.data as { getLightIntensity: number }).getLightIntensity;
     }
 
-    async getLightRange(id: string): Promise<number | null> {
+    async getLightRange(id: string): Promise<number> {
         // Implement GraphQL query to get light range
         const query = gql`
             query getLightRange($id: String!) {
@@ -127,13 +113,10 @@ export class LightRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getLightRange: number | null }).getLightRange ||
-            null
-        );
+        return (result.data as { getLightRange: number }).getLightRange;
     }
 
-    async getLightType(id: string): Promise<string | null> {
+    async getLightType(id: string): Promise<string> {
         // Implement GraphQL query to get light type
         const query = gql`
             query getLightType($id: String!) {
@@ -144,13 +127,10 @@ export class LightRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getLightType: string | null }).getLightType ||
-            null
-        );
+        return (result.data as { getLightType: string }).getLightType;
     }
 
-    async getLightColorMultiplier(id: string): Promise<number | null> {
+    async getLightColorMultiplier(id: string): Promise<number> {
         // Implement GraphQL query to get light color multiplier
         const query = gql`
             query getLightColorMultiplier($id: String!) {
@@ -161,10 +141,8 @@ export class LightRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getLightColorMultiplier: number | null })
-                .getLightColorMultiplier || null
-        );
+        return (result.data as { getLightColorMultiplier: number })
+            .getLightColorMultiplier;
     }
 
     async updateLightName(id: string, name: string): Promise<boolean> {
@@ -323,5 +301,69 @@ export class LightRepository {
                 updateLightColorMultiplier: { acknowledged: boolean };
             }
         ).updateLightColorMultiplier.acknowledged;
+    }
+
+    async getLights(): Promise<LightType[]> {
+        const query = gql`
+            query getLights {
+                getLights {
+                    id
+                    name
+                    color {
+                        r
+                        g
+                        b
+                        a
+                    }
+                    position {
+                        x
+                        y
+                        z
+                    }
+                    intensity
+                    range
+                    type
+                    colorMultiplier
+                }
+            }
+        `;
+        // Force network request to avoid stale cache
+        const res = await apolloClient.query({
+            query,
+            fetchPolicy: "network-only",
+        });
+        const data = (res.data as { getLights: any[] }).getLights;
+        return data;
+    }
+
+    async createLight(light: LightType) {
+        const mutation = gql`
+            mutation createLight($light: LightInput!) {
+                createLight(light: $light)
+            }
+        `;
+        // Deep clone to ensure no class instances remain
+        const cleanData = JSON.parse(JSON.stringify(light));
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { light: cleanData },
+        });
+        return (result.data as { createLight: string }).createLight;
+    }
+
+    async removeLight(id: string) {
+        const mutation = gql`
+            mutation removeLight($id: String!) {
+                removeLight(id: $id) {
+                    acknowledged
+                }
+            }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { id },
+        });
+        return (result.data as { removeLight: { acknowledged: boolean } })
+            .removeLight.acknowledged;
     }
 }

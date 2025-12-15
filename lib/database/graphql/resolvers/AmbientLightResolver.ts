@@ -1,10 +1,9 @@
 import { AmbientLightType } from "@/lib/class/AmbientLight";
 import {
-    getAmbientLightColor,
-    getAmbientLightColorMultiplier,
+    getAmbientLight,
+    getAmbientLightEnvironmentMap,
     getAmbientLightIntensity,
-    updateAmbientLightColor,
-    updateAmbientLightColorMultiplier,
+    updateAmbientLightEnvironmentMap,
     updateAmbientLightIntensity,
 } from "@/lib/database/models/AmbientLightModel";
 import { requireAuth } from "@/lib/helpers";
@@ -12,10 +11,10 @@ import { ContextType } from "@/lib/types";
 
 export const ambientLightResolvers = {
     Query: {
-        getAmbientLightColor: requireAuth(
+        getAmbientLightEnvironmentMap: requireAuth(
             async (_parent: unknown, _args: object, context: ContextType) => {
                 const uid = context.uid;
-                return await getAmbientLightColor(uid);
+                return await getAmbientLightEnvironmentMap(uid);
             }
         ),
         getAmbientLightIntensity: requireAuth(
@@ -24,25 +23,14 @@ export const ambientLightResolvers = {
                 return await getAmbientLightIntensity(uid);
             }
         ),
-        getAmbientLightColorMultiplier: requireAuth(
+        getAmbientLight: requireAuth(
             async (_parent: unknown, _args: object, context: ContextType) => {
                 const uid = context.uid;
-                return await getAmbientLightColorMultiplier(uid);
+                return await getAmbientLight(uid);
             }
         ),
     },
     Mutation: {
-        updateAmbientLightColor: requireAuth(
-            async (
-                _: unknown,
-                { color }: AmbientLightType,
-                context: ContextType
-            ) => {
-                const uid = context.uid;
-                const acknowledged = await updateAmbientLightColor(uid, color);
-                return { acknowledged };
-            }
-        ),
         updateAmbientLightIntensity: requireAuth(
             async (
                 _: unknown,
@@ -57,16 +45,16 @@ export const ambientLightResolvers = {
                 return { acknowledged };
             }
         ),
-        updateAmbientLightColorMultiplier: requireAuth(
+        updateAmbientLightEnvironmentMap: requireAuth(
             async (
                 _: unknown,
-                { colorMultiplier }: { colorMultiplier: number },
+                { environmentMap }: { environmentMap: string },
                 context: ContextType
             ) => {
                 const uid = context.uid;
-                const acknowledged = await updateAmbientLightColorMultiplier(
+                const acknowledged = await updateAmbientLightEnvironmentMap(
                     uid,
-                    colorMultiplier
+                    environmentMap
                 );
                 return { acknowledged };
             }

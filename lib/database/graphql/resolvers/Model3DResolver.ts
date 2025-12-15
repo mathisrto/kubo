@@ -1,4 +1,4 @@
-import { MODEL_FILE_FORMAT } from "@/lib/class/Model3D";
+import { Model3DType, MODEL_FILE_FORMAT } from "@/lib/class/Model3D";
 import { Vector3Type } from "@/lib/class/Vector3";
 import {
     createModel3D,
@@ -268,53 +268,6 @@ export const model3DResolvers = {
                 return { acknowledged };
             }
         ),
-        createModel3D: requireAuth(
-            async (
-                _parent: unknown,
-                {
-                    name,
-                    fileId,
-                    format,
-                    position,
-                    rotation,
-                    scale,
-                    materialId,
-                    metadata,
-                }: {
-                    name: string;
-                    fileId: string;
-                    format: MODEL_FILE_FORMAT;
-                    position?: { x: number; y: number; z: number };
-                    rotation?: { x: number; y: number; z: number };
-                    scale?: { x: number; y: number; z: number };
-                    materialId?: string | null;
-                    metadata?: any;
-                },
-                context: ContextType
-            ) => {
-                const uid = context.uid;
-                if (!name) {
-                    throw new Error("Name is required");
-                }
-                if (!fileId) {
-                    throw new Error("File ID is required");
-                }
-                if (!format) {
-                    throw new Error("Format is required");
-                }
-                return await createModel3D(
-                    uid,
-                    name,
-                    fileId,
-                    format,
-                    position,
-                    rotation,
-                    scale,
-                    materialId,
-                    metadata
-                );
-            }
-        ),
         removeModel3D: requireAuth(
             async (
                 _parent: unknown,
@@ -327,6 +280,16 @@ export const model3DResolvers = {
                 }
                 const acknowledged = await removeModel3D(uid, modelId);
                 return { acknowledged };
+            }
+        ),
+        createModel3D: requireAuth(
+            async (
+                _parent: unknown,
+                { model3d }: { model3d: Model3DType },
+                context: ContextType
+            ) => {
+                const uid = context.uid;
+                return await createModel3D(uid, model3d);
             }
         ),
     },

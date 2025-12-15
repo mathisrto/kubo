@@ -71,7 +71,16 @@
         "email_verification_sent": "Un email de vérification a été envoyé à votre nouvelle adresse. Veuillez vérifier votre email et cliquer sur le lien pour confirmer le changement.",
         "avatar_upload_failed": "Échec de l'upload de l'avatar",
         "avatar_update_success": "Avatar modifié avec succès",
-        "generic_error": "Une erreur est survenue"
+        "generic_error": "Une erreur est survenue",
+        "edit_environment": "Modifier l'image d'environnement",
+        "edit_environment_description": "Sélectionnez une nouvelle image d'environnement pour votre scène 3D",
+        "environment_source": "Source de l'environnement",
+        "choose_source_type": "Choisissez le type de source",
+        "environment_url": "URL de l'environnement",
+        "url": "URL",
+        "file": "Fichier",
+        "scene_saved_success": "Scène sauvegardée avec succès",
+        "scene_reset_success": "Scène réinitialisée avec succès"
     },
     "SwitchTheme": {
         "select_theme": "Sélectionner le thème",

@@ -43,7 +43,7 @@ export type MaterialType = {
  * ```
  */
 export class Material extends ModelClass {
-    private _id: MaterialType["id"] = undefined as unknown as string;
+    private _id: MaterialType["id"];
     private _name: MaterialType["name"];
     private _albedo: Color;
     private _metallic: MaterialType["metallic"];
@@ -51,13 +51,12 @@ export class Material extends ModelClass {
     private _ao: number;
     private _emissive: Color;
 
-    private repository = new MaterialRepository();
+    private repository: MaterialRepository;
 
-    constructor(material: MaterialType) {
+    constructor(material: MaterialType, repository: MaterialRepository) {
         super();
-        if (material.id) {
-            this._id = material.id;
-        }
+        this._id = material.id;
+        this.repository = repository;
         this._name = material.name;
         this._albedo = new Color(material.albedo);
         this._metallic = material.metallic;
@@ -190,7 +189,8 @@ export class Material extends ModelClass {
      * Sets the ambient occlusion (AO) value for the material.
      * @param value - The ambient occlusion value, as defined in the `MaterialType` interface.
      */
-    set ao(value: Material["_ao"]) {
+    set ao(value: MaterialType["ao"]) {
+        if (!value) value = 1.0;
         this._ao = value;
         this.markFieldDirty("ao");
     }
@@ -200,8 +200,11 @@ export class Material extends ModelClass {
      * Accepts a value compatible with the `MaterialType["emissive"]` type and assigns it to the internal `_emissive` property as a `Color` instance.
      * @param value - The emissive color value to set.
      */
-    set emissive(value: Material["_emissive"]) {
-        this._emissive = value;
+    set emissive(value: MaterialType["emissive"]) {
+        if (!value) {
+            value = { r: 0, g: 0, b: 0, a: 1 };
+        }
+        this._emissive = new Color(value);
         this.markFieldDirty("emissive");
     }
 
@@ -231,7 +234,7 @@ export class Material extends ModelClass {
      * @returns {Material} A new `Material` object that is a clone of the current instance.
      */
     public clone(): Material {
-        return new Material(this.serialize());
+        return new Material(this.serialize(), this.repository);
     }
 
     /**
@@ -281,5 +284,14 @@ export class Material extends ModelClass {
         }
 
         this.dirtyFields.clear();
+    }
+
+    updateFromState(state: MaterialType): void {
+        this.name = state.name;
+        this.albedo = state.albedo;
+        this.metallic = state.metallic;
+        this.roughness = state.roughness;
+        this.ao = state.ao;
+        this.emissive = state.emissive;
     }
 }

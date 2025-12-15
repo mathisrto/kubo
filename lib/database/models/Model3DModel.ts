@@ -1,4 +1,4 @@
-import { MODEL_FILE_FORMAT } from "@/lib/class/Model3D";
+import { Model3DType, MODEL_FILE_FORMAT } from "@/lib/class/Model3D";
 import { Vector3Type } from "@/lib/class/Vector3";
 import { getModelsCollection } from "@/lib/database/client";
 
@@ -231,41 +231,35 @@ export async function updateModel3DMaterialId(
     return result.acknowledged;
 }
 
-export async function createModel3D(
-    uid: string,
-    name: string,
-    fileId: string,
-    format: MODEL_FILE_FORMAT,
-    position?: { x: number; y: number; z: number },
-    rotation?: { x: number; y: number; z: number },
-    scale?: { x: number; y: number; z: number },
-    materialId?: string | null,
-    metadata?: any
-) {
+export async function createModel3D(uid: string, model3d: Model3DType) {
     const col = await getModelsCollection();
     if (!col) return null;
 
-    const model3d = {
+    const m = {
         id: `model3d_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-        name,
-        fileId,
-        format,
-        position: position || { x: 0, y: 0, z: 0 },
-        rotation: rotation || { x: 0, y: 0, z: 0 },
-        scale: scale || { x: 1, y: 1, z: 1 },
-        materialId: materialId || null,
-        ...(metadata && { metadata }), // Only include metadata if provided
+        name: model3d.name,
+        fileId: model3d.fileId,
+        format: model3d.format,
+        position: model3d.position || { x: 0, y: 0, z: 0 },
+        rotation: model3d.rotation || { x: 0, y: 0, z: 0 },
+        scale: model3d.scale || { x: 1, y: 1, z: 1 },
+        materialId: model3d.materialId || null,
+        ...(model3d.metadata && { metadata: model3d.metadata }), // Only include metadata if provided
     };
 
     const result = await col.updateOne(
         { _id: uid },
         {
-            $push: { "scene.models3d": model3d } as any,
+            $push: { "scene.models3d": m } as any,
             $set: { "scene.updatedAt": new Date() },
         }
     );
 
-    return result.acknowledged ? model3d.id : null;
+    if (!result.acknowledged) {
+        throw new Error("Failed to create Model3D");
+    }
+
+    return m.id;
 }
 
 export async function removeModel3D(uid: string, modelId: string) {

@@ -1,6 +1,7 @@
 import { ColorType } from "@/lib/class/Color";
 import { MaterialType } from "@/lib/class/Material";
 import {
+    createMaterial,
     getMaterialAlbedo,
     getMaterialAO,
     getMaterialById,
@@ -8,6 +9,8 @@ import {
     getMaterialMetallic,
     getMaterialName,
     getMaterialRoughness,
+    getMaterials,
+    removeMaterial,
     updateMaterialAlbedo,
     updateMaterialAO,
     updateMaterialEmissive,
@@ -111,6 +114,12 @@ export const materialResolvers = {
                 return await getMaterialEmissive(uid, id);
             }
         ),
+        getMaterials: requireAuth(
+            async (_parent: unknown, _args: object, context: ContextType) => {
+                const uid = context.uid;
+                return await getMaterials(uid);
+            }
+        ),
     },
     Mutation: {
         updateMaterialName: requireAuth(
@@ -210,6 +219,27 @@ export const materialResolvers = {
                     id,
                     emissive
                 );
+                return { acknowledged };
+            }
+        ),
+        createMaterial: requireAuth(
+            async (
+                _parent: unknown,
+                { material }: { material: MaterialType },
+                context: ContextType
+            ) => {
+                const uid = context.uid;
+                return await createMaterial(uid, material);
+            }
+        ),
+        removeMaterial: requireAuth(
+            async (
+                _parent: unknown,
+                { materialId }: { materialId: string },
+                context: ContextType
+            ) => {
+                const uid = context.uid;
+                const acknowledged = await removeMaterial(uid, materialId);
                 return { acknowledged };
             }
         ),

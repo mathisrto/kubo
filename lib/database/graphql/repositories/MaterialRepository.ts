@@ -4,7 +4,7 @@ import { gql } from "@apollo/client";
 import { apolloClient } from "../client";
 
 export class MaterialRepository {
-    async getMaterialById(id: string): Promise<MaterialType | null> {
+    async getMaterialById(id: string): Promise<MaterialType> {
         // Implement GraphQL query to get material by ID
         const query = gql`
             query getMaterialById($id: String!) {
@@ -33,13 +33,11 @@ export class MaterialRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getMaterialById: MaterialType | null })
-                .getMaterialById || null
-        );
+        return (result.data as { getMaterialById: MaterialType })
+            .getMaterialById;
     }
 
-    async getMaterialName(id: string): Promise<string | null> {
+    async getMaterialName(id: string): Promise<string> {
         // Implement GraphQL query to get material name
         const query = gql`
             query getMaterialName($id: String!) {
@@ -50,13 +48,10 @@ export class MaterialRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getMaterialName: string | null })
-                .getMaterialName || null
-        );
+        return (result.data as { getMaterialName: string }).getMaterialName;
     }
 
-    async getMaterialAlbedo(id: string): Promise<ColorType | null> {
+    async getMaterialAlbedo(id: string): Promise<ColorType> {
         // Implement GraphQL query to get material albedo
         const query = gql`
             query getMaterialAlbedo($id: String!) {
@@ -72,13 +67,11 @@ export class MaterialRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getMaterialAlbedo: ColorType | null })
-                .getMaterialAlbedo || null
-        );
+        return (result.data as { getMaterialAlbedo: ColorType })
+            .getMaterialAlbedo;
     }
 
-    async getMaterialMetallic(id: string): Promise<number | null> {
+    async getMaterialMetallic(id: string): Promise<number> {
         // Implement GraphQL query to get material metallic
         const query = gql`
             query getMaterialMetallic($id: String!) {
@@ -89,13 +82,11 @@ export class MaterialRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getMaterialMetallic: number | null })
-                .getMaterialMetallic || null
-        );
+        return (result.data as { getMaterialMetallic: number })
+            .getMaterialMetallic;
     }
 
-    async getMaterialRoughness(id: string): Promise<number | null> {
+    async getMaterialRoughness(id: string): Promise<number> {
         // Implement GraphQL query to get material roughness
         const query = gql`
             query getMaterialRoughness($id: String!) {
@@ -106,13 +97,11 @@ export class MaterialRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getMaterialRoughness: number | null })
-                .getMaterialRoughness || null
-        );
+        return (result.data as { getMaterialRoughness: number })
+            .getMaterialRoughness;
     }
 
-    async getMaterialAO(id: string): Promise<number | null> {
+    async getMaterialAO(id: string): Promise<number> {
         // Implement GraphQL query to get material ambient occlusion
         const query = gql`
             query getMaterialAO($id: String!) {
@@ -123,13 +112,10 @@ export class MaterialRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getMaterialAO: number | null }).getMaterialAO ||
-            null
-        );
+        return (result.data as { getMaterialAO: number }).getMaterialAO;
     }
 
-    async getMaterialEmissive(id: string): Promise<ColorType | null> {
+    async getMaterialEmissive(id: string): Promise<ColorType> {
         // Implement GraphQL query to get material emissive
         const query = gql`
             query getMaterialEmissive($id: String!) {
@@ -145,10 +131,8 @@ export class MaterialRepository {
             query,
             variables: { id },
         });
-        return (
-            (result.data as { getMaterialEmissive: ColorType | null })
-                .getMaterialEmissive || null
-        );
+        return (result.data as { getMaterialEmissive: ColorType })
+            .getMaterialEmissive;
     }
 
     async updateMaterialName(id: string, name: string): Promise<boolean> {
@@ -284,5 +268,69 @@ export class MaterialRepository {
                 updateMaterialEmissive: { acknowledged: boolean };
             }
         ).updateMaterialEmissive.acknowledged;
+    }
+
+    async removeMaterial(id: string) {
+        const mutation = gql`
+            mutation removeMaterial($id: String!) {
+                removeMaterial(id: $id) {
+                    acknowledged
+                }
+            }
+        `;
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { id },
+        });
+        return (result.data as { removeMaterial: { acknowledged: boolean } })
+            .removeMaterial.acknowledged;
+    }
+
+    async createMaterial(material: MaterialType) {
+        const mutation = gql`
+            mutation createMaterial($material: MaterialInput!) {
+                createMaterial(material: $material)
+            }
+        `;
+        // Deep clone to ensure no class instances remain
+        const cleanData = JSON.parse(JSON.stringify(material));
+        const result = await apolloClient.mutate({
+            mutation,
+            variables: { material: cleanData },
+        });
+        return (result.data as { createMaterial: string }).createMaterial;
+    }
+
+    async getMaterials(): Promise<MaterialType[]> {
+        const query = gql`
+            query getMaterials {
+                getMaterials {
+                    id
+                    name
+                    albedo {
+                        r
+                        g
+                        b
+                        a
+                    }
+                    metallic
+                    roughness
+                    ao
+                    emissive {
+                        r
+                        g
+                        b
+                        a
+                    }
+                }
+            }
+        `;
+        // Force network request to avoid stale cache
+        const res = await apolloClient.query({
+            query,
+            fetchPolicy: "network-only",
+        });
+        const data = (res.data as { getMaterials: any[] }).getMaterials;
+        return data;
     }
 }

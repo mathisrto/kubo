@@ -49,7 +49,7 @@ export type LightType = {
  * ```
  */
 export class Light extends ModelClass {
-    private _id: LightType["id"] = undefined as unknown as string;
+    private _id: LightType["id"];
     private _name: LightType["name"];
     private _position: Vector3;
     private _color: Color;
@@ -58,7 +58,7 @@ export class Light extends ModelClass {
     private _type: LightType["type"];
     private _colorMultiplier: number;
 
-    private repository = new LightRepository();
+    private repository: LightRepository;
 
     /**
      * Creates a new Light instance with the specified properties.
@@ -71,11 +71,10 @@ export class Light extends ModelClass {
      *   - `range`: The effective range of the light.
      *   - `type`: The type of the light.
      */
-    constructor(light: LightType) {
+    constructor(light: LightType, repository: LightRepository) {
         super();
-        if (light.id) {
-            this._id = light.id;
-        }
+        this._id = light.id;
+        this.repository = repository;
         this._name = light.name;
         this._position = new Vector3(light.position);
         this._color = new Color(light.color);
@@ -285,7 +284,7 @@ export class Light extends ModelClass {
      * @returns {Light} A new `Light` instance that is a copy of the current object.
      */
     public clone(): Light {
-        return new Light(this.serialize());
+        return new Light(this.serialize(), this.repository);
     }
 
     /**
@@ -373,5 +372,15 @@ export class Light extends ModelClass {
         }
 
         this.clearDirtyFields();
+    }
+
+    updateFromState(state: LightType): void {
+        this.name = state.name;
+        this.position.updateFromState(state.position);
+        this.color.updateFromState(state.color);
+        this.intensity = state.intensity;
+        this.range = state.range;
+        this.type = state.type;
+        this.colorMultiplier = state.colorMultiplier ?? 1;
     }
 }

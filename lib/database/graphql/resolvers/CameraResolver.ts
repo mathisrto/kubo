@@ -1,18 +1,17 @@
 // --- src/graphql/resolvers/camera.ts ---
 import { CameraType } from "@/lib/class/Camera";
 import {
+    getCamera,
     getCameraFar,
     getCameraFOV,
     getCameraNear,
     getCameraPosition,
-    getCameraRotation,
     getCameraTarget,
     getCameraType,
     updateCameraFar,
     updateCameraFOV,
     updateCameraNear,
     updateCameraPosition,
-    updateCameraRotation,
     updateCameraTarget,
     updateCameraType,
 } from "@/lib/database/models/CameraModel";
@@ -24,11 +23,6 @@ export const cameraResolvers = {
         getCameraPosition: requireAuth(
             async (_: unknown, __: object, context: ContextType) => {
                 return await getCameraPosition(context.uid);
-            }
-        ),
-        getCameraRotation: requireAuth(
-            async (_: unknown, __: object, context: ContextType) => {
-                return await getCameraRotation(context.uid);
             }
         ),
         getCameraTarget: requireAuth(
@@ -56,6 +50,12 @@ export const cameraResolvers = {
                 return await getCameraType(context.uid);
             }
         ),
+        getCamera: requireAuth(
+            async (_parent: unknown, _args: object, context: ContextType) => {
+                const uid = context.uid;
+                return await getCamera(uid);
+            }
+        ),
     },
 
     Mutation: {
@@ -68,20 +68,6 @@ export const cameraResolvers = {
                 const acknowledged = await updateCameraPosition(
                     context.uid,
                     position
-                );
-
-                return { acknowledged };
-            }
-        ),
-        updateCameraRotation: requireAuth(
-            async (
-                _: unknown,
-                { rotation }: CameraType,
-                context: ContextType
-            ) => {
-                const acknowledged = await updateCameraRotation(
-                    context.uid,
-                    rotation
                 );
 
                 return { acknowledged };

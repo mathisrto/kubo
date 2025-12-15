@@ -16,7 +16,6 @@ import { Vector3, Vector3Type } from "./Vector3";
  */
 export type CameraType = {
     position: Vector3Type;
-    rotation: Vector3Type;
     target: Vector3Type;
     fov: number;
     near: number;
@@ -47,24 +46,23 @@ export type CameraType = {
  */
 export class Camera extends ModelClass {
     private _position: Vector3;
-    private _rotation: Vector3;
     private _target: Vector3;
     private _fov: CameraType["fov"];
     private _near: CameraType["near"];
     private _far: CameraType["far"];
     private _type: CameraType["type"];
 
-    private repository = new CameraRepository();
+    private repository: CameraRepository;
 
     /**
      * Creates a new Camera instance by copying properties from the provided camera object.
      *
      * @param camera - The source camera object containing initial values for position, rotation, fov, near, far, and type.
      */
-    constructor(camera: CameraType) {
+    constructor(camera: CameraType, repository: CameraRepository) {
         super();
+        this.repository = repository;
         this._position = new Vector3(camera.position);
-        this._rotation = new Vector3(camera.rotation);
         this._target = new Vector3(camera.target || { x: 0, y: 0, z: 0 });
         this._fov = camera.fov;
         this._near = camera.near;
@@ -73,7 +71,6 @@ export class Camera extends ModelClass {
 
         // Enregistrer les Vector3 comme enfants pour la propagation
         this.registerChild(this._position);
-        this.registerChild(this._rotation);
         this.registerChild(this._target);
     }
 
@@ -88,15 +85,6 @@ export class Camera extends ModelClass {
      */
     get position(): Camera["_position"] {
         return this._position;
-    }
-
-    /**
-     * Gets the current rotation value of the camera.
-     *
-     * @returns The camera's rotation, represented by the `_rotation` property.
-     */
-    get rotation(): Camera["_rotation"] {
-        return this._rotation;
     }
 
     /**
@@ -157,19 +145,6 @@ export class Camera extends ModelClass {
         this._position = new Vector3(position);
         this.markFieldDirty("position");
     }
-
-    /**
-     * Sets the camera's rotation.
-     * Accepts a value of type `CameraType["rotation"]` and assigns it to the internal `_rotation` property
-     * as a new `Vector3` instance.
-     *
-     * @param rotation - The rotation value to set for the camera.
-     */
-    set rotation(rotation: CameraType["rotation"]) {
-        this._rotation = new Vector3(rotation);
-        this.markFieldDirty("rotation");
-    }
-
     /**
      * Sets the camera's target (look-at point).
      *
@@ -238,44 +213,6 @@ export class Camera extends ModelClass {
     }
 
     /**
-     * Rotates the camera by the specified amounts along the x, y, and z axes.
-     *
-     * @param x - The amount to rotate around the x-axis.
-     * @param y - The amount to rotate around the y-axis.
-     * @param z - The amount to rotate around the z-axis.
-     */
-    public rotate(
-        x: CameraType["rotation"]["x"],
-        y: CameraType["rotation"]["y"],
-        z: CameraType["rotation"]["z"]
-    ): void {
-        this.rotation.x += x;
-        this.rotation.y += y;
-        this.rotation.z += z;
-
-        this.markFieldDirty("rotation");
-    }
-
-    /**
-     * Orients the camera to look at a specified target position.
-     *
-     * Calculates the direction vector from the camera's current position to the target,
-     * normalizes it, and updates the camera's rotation accordingly.
-     *
-     * @param target - The target position to look at, represented as a `Vector3`.
-     */
-    public lookAt(target: Vector3): void {
-        const direction = target.subtract(this.position).normalize();
-        this.rotation = new Vector3({
-            x: Math.asin(direction.y),
-            y: Math.atan2(-direction.x, -direction.z),
-            z: 0,
-        });
-
-        this.markFieldDirty("rotation");
-    }
-
-    /**
      * Serializes the current camera instance into a plain object of type `CameraType`.
      *
      * @returns {CameraType} An object containing the camera's position, rotation, field of view (fov), near and far clipping planes, and type.
@@ -283,7 +220,6 @@ export class Camera extends ModelClass {
     public serialize(): CameraType {
         return {
             position: this.position.serialize(),
-            rotation: this.rotation.serialize(),
             target: this.target.serialize(),
             fov: this.fov,
             near: this.near,
@@ -322,20 +258,6 @@ export class Camera extends ModelClass {
             );
         }
 
-        // Si un sous-champ de rotation a changé
-        if (
-            this._rotation.countDirtyFields() > 0 ||
-            this.dirtyFields.has("rotation")
-        ) {
-            console.log(
-                "[Camera.save] Updating rotation:",
-                this.rotation.serialize()
-            );
-            promises.push(
-                this.repository.updateCameraRotation(this.rotation.serialize())
-            );
-        }
-
         // Si un sous-champ de target a changé
         if (
             this._target.countDirtyFields() > 0 ||
@@ -368,8 +290,16 @@ export class Camera extends ModelClass {
 
         // Nettoyer aussi les dirty fields des Vector3
         this._position.clearDirtyFields();
-        this._rotation.clearDirtyFields();
         this._target.clearDirtyFields();
         console.log("[Camera Save] Save completed");
+    }
+
+    updateFromState(state: CameraType): void {
+        this.position.updateFromState(state.position);
+        this.target.updateFromState(state.target);
+        this.fov = state.fov;
+        this.near = state.near;
+        this.far = state.far;
+        this.type = state.type;
     }
 }

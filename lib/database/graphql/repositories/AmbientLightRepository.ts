@@ -1,35 +1,12 @@
-import { ColorType } from "@/lib/class/Color";
+import { AmbientLightType } from "@/lib/class/AmbientLight";
 import { gql } from "@apollo/client";
 import { apolloClient } from "../client";
 
 export class AmbientLightRepository {
-    async getAmbientLightColor(): Promise<ColorType> {
-        const query = gql`
-            query getAmbientLightColor {
-                getAmbientLightColor {
-                    r
-                    g
-                    b
-                    a
-                }
-            }
-        `;
-        const result = await apolloClient.query({
-            query,
-        });
-        return (
-            result.data as {
-                getAmbientLightColor: ColorType;
-            }
-        ).getAmbientLightColor;
-    }
-
-    async getAmbientLightIntensity(): Promise<number> {
+    async getAmbientLightIntensity(): Promise<number | undefined> {
         const query = gql`
             query getAmbientLightIntensity {
-                getAmbientLightIntensity {
-                    intensity
-                }
+                getAmbientLightIntensity
             }
         `;
         const result = await apolloClient.query({
@@ -37,44 +14,9 @@ export class AmbientLightRepository {
         });
         return (
             result.data as {
-                getAmbientLightIntensity: number;
+                getAmbientLightIntensity: number | undefined;
             }
         ).getAmbientLightIntensity;
-    }
-
-    async getAmbientLightColorMultiplier(): Promise<number> {
-        const query = gql`
-            query getAmbientLightColorMultiplier {
-                getAmbientLightColorMultiplier
-            }
-        `;
-        const result = await apolloClient.query({
-            query,
-        });
-        return (
-            result.data as {
-                getAmbientLightColorMultiplier: number;
-            }
-        ).getAmbientLightColorMultiplier;
-    }
-
-    async updateAmbientLightColor(color: ColorType): Promise<boolean> {
-        const mutation = gql`
-            mutation updateAmbientLightColor($color: ColorInput!) {
-                updateAmbientLightColor(color: $color) {
-                    acknowledged
-                }
-            }
-        `;
-        const result = await apolloClient.mutate({
-            mutation,
-            variables: { color },
-        });
-        return (
-            result.data as {
-                updateAmbientLightColor: { acknowledged: boolean };
-            }
-        ).updateAmbientLightColor.acknowledged;
     }
 
     async updateAmbientLightIntensity(intensity: number): Promise<boolean> {
@@ -96,16 +38,43 @@ export class AmbientLightRepository {
         ).updateAmbientLightIntensity.acknowledged;
     }
 
-    async updateAmbientLightColorMultiplier(
-        colorMultiplier: number
+    async getAmbientLightEnvironmentMap(): Promise<string> {
+        const query = gql`
+            query getAmbientLightEnvironmentMap {
+                getAmbientLightEnvironmentMap
+            }
+        `;
+        const result = await apolloClient.query({
+            query,
+        });
+        return (
+            result.data as {
+                getAmbientLightEnvironmentMap: string;
+            }
+        ).getAmbientLightEnvironmentMap;
+    }
+
+    async getAmbientLight() {
+        const query = gql`
+            query getAmbientLight {
+                getAmbientLight {
+                    intensity
+                    environmentMap
+                }
+            }
+        `;
+        const res = await apolloClient.query({ query });
+        return (res.data as { getAmbientLight: AmbientLightType })
+            .getAmbientLight;
+    }
+
+    async updateAmbientLightEnvironmentMap(
+        environmentMap: string
     ): Promise<boolean> {
-        // Implement GraphQL mutation to update light color multiplier
         const mutation = gql`
-            mutation updateAmbientLightColorMultiplier(
-                $colorMultiplier: Float!
-            ) {
-                updateAmbientLightColorMultiplier(
-                    colorMultiplier: $colorMultiplier
+            mutation updateAmbientLightEnvironmentMap($environmentMap: String) {
+                updateAmbientLightEnvironmentMap(
+                    environmentMap: $environmentMap
                 ) {
                     acknowledged
                 }
@@ -113,12 +82,12 @@ export class AmbientLightRepository {
         `;
         const result = await apolloClient.mutate({
             mutation,
-            variables: { colorMultiplier },
+            variables: { environmentMap },
         });
         return (
             result.data as {
-                updateAmbientLightColorMultiplier: { acknowledged: boolean };
+                updateAmbientLightEnvironmentMap: { acknowledged: boolean };
             }
-        ).updateAmbientLightColorMultiplier.acknowledged;
+        ).updateAmbientLightEnvironmentMap.acknowledged;
     }
 }

@@ -1,18 +1,15 @@
 import { AmbientLightRepository } from "../database/graphql/repositories/AmbientLightRepository";
-import { Color, ColorType } from "./Color";
 import { ModelClass } from "./ModelClass";
 
 /**
  * Represents the properties of an ambient light source.
  *
- * @property color - The color of the ambient light, defined as a `ColorType`.
  * @property intensity - The intensity or strength of the ambient light.
- * @property colorMultiplier - (Optional) A multiplier applied to the color for additional adjustment.
+ * @property environmentMap - (Optional) URL or identifier for the environment image (HDRI, panorama, etc.)
  */
 export type AmbientLightType = {
-    color: ColorType;
     intensity: number;
-    colorMultiplier?: number;
+    environmentMap: string; // URL ou identifiant de l'image d'environnement
 };
 
 /**
@@ -25,46 +22,42 @@ export type AmbientLightType = {
  * @example
  * ```ts
  * const ambient = new AmbientLight({
- *   color: "#ffffff",
  *   intensity: 0.8,
- *   colorMultiplier: 1.2
+ *   environmentMap: "venice_sunset.hdr"
  * });
  * ```
  */
 export class AmbientLight extends ModelClass {
-    private _color: Color;
     private _intensity: number;
-    private _colorMultiplier: number;
+    private _environmentMap: string;
 
-    private repository = new AmbientLightRepository();
+    private repository: AmbientLightRepository;
 
     /**
      * Creates a new instance of the AmbientLight class.
      *
      * @param data - The configuration object containing properties for the ambient light.
-     * @param data.color - The color value of the ambient light, used to initialize the Color instance.
      * @param data.intensity - The intensity of the ambient light.
-     * @param data.colorMultiplier - (Optional) A multiplier applied to the color; defaults to 1 if not provided.
+     * @param data.environmentMap - (Optional) The environment map GridFS ID or URL.
      */
-    constructor(data: AmbientLightType) {
+    constructor(data: AmbientLightType, repository: AmbientLightRepository) {
         super();
-        this._color = new Color(data.color);
         this._intensity = data.intensity;
-        this._colorMultiplier = data.colorMultiplier ?? 1;
-
-        // Enregistrer la couleur comme enfant pour la propagation
-        this.registerChild(this._color);
+        this.repository = repository;
+        // On stocke l'ID GridFS, ou une URL directe si fournie
+        if (data.environmentMap) {
+            // Si c'est un ObjectId (24 caractères hex), on le traite comme un ID GridFS
+            if (/^[a-f\d]{24}$/i.test(data.environmentMap)) {
+                this._environmentMap = data.environmentMap;
+            } else {
+                this._environmentMap = data.environmentMap;
+            }
+        } else {
+            this._environmentMap = "";
+        }
     }
 
     /* Getters */
-
-    /**
-     * Gets the current color of the ambient light.
-     * @returns The color value as stored in the `_color` property.
-     */
-    get color() {
-        return this._color;
-    }
 
     /**
      * Gets the current intensity value of the ambient light.
@@ -75,24 +68,18 @@ export class AmbientLight extends ModelClass {
     }
 
     /**
-     * Gets the current color multiplier value for the ambient light.
-     * This value is typically used to adjust the intensity or tint of the light's color.
-     * @returns The color multiplier as a number or appropriate type.
+     * Gets the current environment map GridFS ID (si stocké comme ID).
      */
-    get colorMultiplier() {
-        return this._colorMultiplier;
+    get environmentMap() {
+        // Si c'est un ObjectId (GridFS), retourne l'URL API
+        if (/^[a-f\d]{24}$/i.test(this._environmentMap)) {
+            return `api/environments/${this._environmentMap}`;
+        }
+        // Sinon, c'est une URL externe
+        return this._environmentMap;
     }
 
     /* Setters */
-
-    /**
-     * Sets the color of the ambient light.
-     * @param c - The new color to apply.
-     */
-    set color(c: Color) {
-        this._color = c;
-        this.markFieldDirty("color");
-    }
 
     /**
      * Sets the intensity of the ambient light.
@@ -105,13 +92,16 @@ export class AmbientLight extends ModelClass {
     }
 
     /**
-     * Sets the color multiplier for the ambient light.
-     *
-     * @param m - The new multiplier value to apply to the ambient light's color.
+     * Sets the environment map (image) for the ambient light.
+     * @param map - The new environment map GridFS ID or URL.
      */
-    set colorMultiplier(m: number) {
-        this._colorMultiplier = m;
-        this.markFieldDirty("colorMultiplier");
+    set environmentMap(map: string) {
+        if (/^[a-f\d]{24}$/i.test(map)) {
+            this._environmentMap = map;
+        } else {
+            this._environmentMap = map;
+        }
+        this.markFieldDirty("environmentMap");
     }
 
     /* Methods */
@@ -123,9 +113,8 @@ export class AmbientLight extends ModelClass {
      */
     serialize(): AmbientLightType {
         return {
-            color: this._color.serialize(),
             intensity: this._intensity,
-            colorMultiplier: this._colorMultiplier,
+            environmentMap: this._environmentMap,
         };
     }
 
@@ -137,30 +126,19 @@ export class AmbientLight extends ModelClass {
     async save(): Promise<void> {
         if (this.countDirtyFields() === 0) return;
 
-        // Si un sous-champ de couleur a changé
-        if (
-            this._color.countDirtyFields() > 0 ||
-            this.dirtyFields.has("color")
-        ) {
-            console.log(
-                "[AmbientLight.save] Updating color:",
-                this._color.serialize()
-            );
-            await this.repository.updateAmbientLightColor(
-                this._color.serialize()
-            );
-            this._color.clearDirtyFields();
-        }
-
         if (this.dirtyFields.has("intensity")) {
             await this.repository.updateAmbientLightIntensity(this._intensity);
         }
-        if (this.dirtyFields.has("colorMultiplier")) {
-            await this.repository.updateAmbientLightColorMultiplier(
-                this._colorMultiplier
+        if (this.dirtyFields.has("environmentMap")) {
+            await this.repository.updateAmbientLightEnvironmentMap(
+                this._environmentMap
             );
         }
-
         this.clearDirtyFields();
+    }
+
+    updateFromState(state: AmbientLightType): void {
+        this.intensity = state.intensity;
+        this.environmentMap = state.environmentMap;
     }
 }

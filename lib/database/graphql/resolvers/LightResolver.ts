@@ -1,5 +1,6 @@
 import { LightType } from "@/lib/class/Light";
 import {
+    createLight,
     getLightById,
     getLightColor,
     getLightColorMultiplier,
@@ -7,7 +8,9 @@ import {
     getLightName,
     getLightPosition,
     getLightRange,
+    getLights,
     getLightType,
+    removeLight,
     updateLightColor,
     updateLightColorMultiplier,
     updateLightIntensity,
@@ -91,6 +94,12 @@ export const lightResolvers = {
                     throw new Error("Light ID is required");
                 }
                 return await getLightColorMultiplier(uid, id);
+            }
+        ),
+        getLights: requireAuth(
+            async (_parent: unknown, _args: object, context: ContextType) => {
+                const uid = context.uid;
+                return await getLights(uid);
             }
         ),
     },
@@ -205,6 +214,27 @@ export const lightResolvers = {
                     id,
                     colorMultiplier
                 );
+                return { acknowledged };
+            }
+        ),
+        createLight: requireAuth(
+            async (
+                _parent: unknown,
+                { light }: { light: LightType },
+                context: ContextType
+            ) => {
+                const uid = context.uid;
+                return await createLight(uid, light);
+            }
+        ),
+        removeLight: requireAuth(
+            async (
+                _parent: unknown,
+                { lightId }: { lightId: string },
+                context: ContextType
+            ) => {
+                const uid = context.uid;
+                const acknowledged = await removeLight(uid, lightId);
                 return { acknowledged };
             }
         ),

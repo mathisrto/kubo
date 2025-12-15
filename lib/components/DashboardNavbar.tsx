@@ -28,7 +28,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useUser } from "@/lib/contexts/UserContext";
-import { useViewport } from "@/lib/contexts/ViewportContext";
 import { auth } from "@/lib/firebase/client";
 import {
     EmailAuthProvider,
@@ -38,6 +37,7 @@ import {
     verifyBeforeUpdateEmail,
 } from "firebase/auth";
 import {
+    Container,
     Key,
     LogOut,
     Mail,
@@ -49,38 +49,27 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { CAMERA_TYPES } from "../constants";
+import { useScene } from "../contexts/SceneContext";
+import { UserRepository } from "../database/graphql/repositories/UserRepository";
 
 export const DashboardNavbar = () => {
     const t = useTranslations("Dashboard");
-    const tCommon = useTranslations("Common");
     const { user, logout } = useUser();
     const router = useRouter();
-    const {
-        cameraType,
-        setCameraType,
-        environmentImage,
-        setEnvironmentImage,
-        environmentIntensity,
-        setEnvironmentIntensity,
-    } = useViewport();
-    // Enum GraphQL pour CameraType
-    const cameraTypeEnum = {
-        perspective: "PERSPECTIVE",
-        orthographic: "ORTHOGRAPHIC",
-    };
-    // Import CameraRepository dynamiquement pour éviter SSR issues
-    const CameraRepository =
-        require("@/lib/database/graphql/repositories/CameraRepository").CameraRepository;
-    const cameraRepo = new CameraRepository();
-    const { scene } = require("@/lib/contexts/SceneContext").useScene();
+    const { scene, updateScene, resetScene } = useScene();
 
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogType, setDialogType] = useState<
-        "password" | "username" | "avatar" | "email" | "apikey" | null
+        | "password"
+        | "username"
+        | "avatar"
+        | "email"
+        | "apikey"
+        | "environment"
+        | null
     >(null);
 
     const [newPassword, setNewPassword] = useState("");
@@ -95,42 +84,18 @@ export const DashboardNavbar = () => {
     const [isLoadingApiKey, setIsLoadingApiKey] = useState(false);
     const [error, setError] = useState("");
 
-    const handleImportClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        // TODO: Implémenter l'import
-        console.log("Import file:", file);
-    };
-
-    const handleExport = () => {
-        const data = {
-            exportedAt: new Date().toISOString(),
-            note: t("scene_export_placeholder"),
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], {
-            type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = t("scene_export_filename");
-        a.click();
-        URL.revokeObjectURL(url);
-        toast.success(t("scene_export_success"));
-    };
+    const userRepository = new UserRepository();
 
     const handleReset = () => {
-        // TODO: Implémenter la réinitialisation de la scène
-        toast.info(t("feature_coming_soon"));
+        resetScene();
+        toast.success(t("scene_reset_success"));
     };
 
     const handleSave = () => {
-        // TODO: Implémenter la sauvegarde de la scène
-        toast.success(t("scene_save_success"));
+        updateScene((scene) => {
+            scene.save();
+        });
+        toast.success(t("scene_saved_success"));
     };
 
     const handleLogout = async () => {
@@ -139,7 +104,13 @@ export const DashboardNavbar = () => {
     };
 
     const openDialog = async (
-        type: "password" | "username" | "avatar" | "email" | "apikey"
+        type:
+            | "password"
+            | "username"
+            | "avatar"
+            | "email"
+            | "apikey"
+            | "environment"
     ) => {
         setDialogType(type);
         setDialogOpen(true);
@@ -148,7 +119,7 @@ export const DashboardNavbar = () => {
         if (type === "apikey" && user) {
             setIsLoadingApiKey(true);
             try {
-                const existingKey = await user.repository.getApiKey(user.uid);
+                const existingKey = await userRepository.getApiKey(user.uid);
                 if (existingKey) {
                     setApiKey(existingKey);
                 }
@@ -178,7 +149,7 @@ export const DashboardNavbar = () => {
                 .substring(2, 15)}`;
 
             // Sauvegarder dans la base de données
-            await user.repository.updateApiKey(user.uid, generatedKey);
+            await userRepository.updateApiKey(user.uid, generatedKey);
 
             setApiKey(generatedKey);
             user.apiKey = generatedKey;
@@ -192,6 +163,8 @@ export const DashboardNavbar = () => {
             setIsLoading(false);
         }
     };
+
+    const handleEditEnvironment = () => {};
 
     const handleDialogSave = async () => {
         if (!user || !auth.currentUser) return;
@@ -336,19 +309,47 @@ export const DashboardNavbar = () => {
                                 <span>{t("save")}</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={() => openDialog("environment")}
+                                className="flex items-center gap-2"
+                            >
+                                <Container className="w-4 h-4" />
+                                <span>{t("edit_environment")}</span>
+                            </DropdownMenuItem>
+                            <div className="px-2 py-1">
+                                <Label className="mb-1 block">
+                                    {t("environment_intensity")} (
+                                    {scene?.ambientLight.intensity.toFixed(1)})
+                                </Label>
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={3}
+                                    step={0.1}
+                                    value={scene?.ambientLight.intensity.toFixed(
+                                        1
+                                    )}
+                                    onChange={(e) =>
+                                        updateScene((scene) => {
+                                            scene.ambientLight.intensity =
+                                                parseFloat(e.target.value);
+                                        })
+                                    }
+                                    className="w-full"
+                                />
+                            </div>
                             <div className="px-2 py-1">
                                 <Label className="mb-1 block">
                                     {t("camera_type")}
                                 </Label>
                                 <Select
                                     onValueChange={(value) => {
-                                        setCameraType(value as CAMERA_TYPES);
-                                        // Synchroniser le type de caméra dans la scène 3D
-                                        if (scene && scene.camera) {
-                                            scene.camera.type = value;
-                                        }
+                                        updateScene((scene) => {
+                                            scene.camera.type =
+                                                value as CAMERA_TYPES;
+                                        });
                                     }}
-                                    value={cameraType}
+                                    value={scene?.camera.type}
                                 >
                                     <SelectTrigger className="w-full">
                                         <SelectValue
@@ -368,58 +369,6 @@ export const DashboardNavbar = () => {
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                            </div>
-                            <div className="px-2 py-1">
-                                <Label className="mb-1 block">
-                                    {t("environment_image")}
-                                </Label>
-                                <Select
-                                    onValueChange={(value) => {
-                                        setEnvironmentImage(value);
-                                        // Synchroniser l'environnement dans la scène 3D
-                                        if (scene && scene.environment) {
-                                            scene.environment.image = value;
-                                        }
-                                    }}
-                                    value={environmentImage}
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Sélectionner un environnement" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="venice_sunset">
-                                            Venice Sunset
-                                        </SelectItem>
-                                        <SelectItem value="studio">
-                                            Studio
-                                        </SelectItem>
-                                        <SelectItem value="warehouse">
-                                            Warehouse
-                                        </SelectItem>
-                                        <SelectItem value="forest">
-                                            Forest
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="px-2 py-1">
-                                <Label className="mb-1 block">
-                                    {t("environment_intensity")} (
-                                    {environmentIntensity})
-                                </Label>
-                                <input
-                                    type="range"
-                                    min={0}
-                                    max={3}
-                                    step={0.1}
-                                    value={environmentIntensity}
-                                    onChange={(e) =>
-                                        setEnvironmentIntensity(
-                                            Number(e.target.value)
-                                        )
-                                    }
-                                    className="w-full"
-                                />
                             </div>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -522,6 +471,8 @@ export const DashboardNavbar = () => {
                             {dialogType === "email" && t("edit_email")}
                             {dialogType === "avatar" && t("edit_avatar")}
                             {dialogType === "apikey" && t("api_key")}
+                            {dialogType === "environment" &&
+                                t("edit_environment")}
                         </DialogTitle>
                         <DialogDescription>
                             {dialogType === "password" &&
@@ -532,6 +483,8 @@ export const DashboardNavbar = () => {
                             {dialogType === "avatar" && t("upload_new_avatar")}
                             {dialogType === "apikey" &&
                                 t("generate_api_key_description")}
+                            {dialogType === "environment" &&
+                                t("edit_environment_description")}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -747,6 +700,98 @@ export const DashboardNavbar = () => {
                                                 : t("generate_api_key")}
                                         </Button>
                                     </>
+                                )}
+                            </div>
+                        )}
+                        {dialogType === "environment" && (
+                            <div className="grid gap-4">
+                                <Label>{t("environment_source")}</Label>
+                                <Select
+                                    value={
+                                        scene?.ambientLight.environmentMap.startsWith(
+                                            "http"
+                                        )
+                                            ? "url"
+                                            : scene?.ambientLight.environmentMap
+                                            ? "file"
+                                            : "url"
+                                    }
+                                    onValueChange={(value) => {
+                                        updateScene((scene) => {
+                                            scene.ambientLight.environmentMap =
+                                                value;
+                                        });
+                                    }}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue
+                                            placeholder={t(
+                                                "choose_source_type"
+                                            )}
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="url">
+                                            {t("url")}
+                                        </SelectItem>
+                                        <SelectItem value="file">
+                                            {t("file")}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {scene?.ambientLight.environmentMap.startsWith(
+                                    "http"
+                                ) || !scene?.ambientLight.environmentMap ? (
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="environment-url">
+                                            {t("environment_url")}
+                                        </Label>
+                                        <Input
+                                            id="environment-url"
+                                            type="url"
+                                            value={
+                                                scene?.ambientLight.environmentMap.startsWith(
+                                                    "http"
+                                                )
+                                                    ? scene?.ambientLight
+                                                          .environmentMap
+                                                    : ""
+                                            }
+                                            onChange={(e) =>
+                                                updateScene((scene) => {
+                                                    scene.ambientLight.environmentMap =
+                                                        e.target.value;
+                                                })
+                                            }
+                                            placeholder="https://..."
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="environment-file">
+                                            {t("environment_file")}
+                                        </Label>
+                                        <Input
+                                            id="environment-file"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const file =
+                                                    e.target.files?.[0];
+                                                if (file) {
+                                                    updateScene((scene) => {
+                                                        // Ici, on pourrait implémenter l'upload
+                                                        // vers le serveur et obtenir un URL ou ID
+                                                        // temporaire pour l'environnement.
+                                                        // Pour l'instant, on met juste le nom du fichier.
+                                                        scene.ambientLight.environmentMap =
+                                                            file.name;
+                                                    });
+                                                    // TODO: gérer l'upload du fichier
+                                                }
+                                            }}
+                                        />
+                                    </div>
                                 )}
                             </div>
                         )}

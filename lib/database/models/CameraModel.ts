@@ -9,13 +9,6 @@ export async function getCameraPosition(uid: string) {
     return doc?.scene.camera.position;
 }
 
-export async function getCameraRotation(uid: string) {
-    const col = await getModelsCollection();
-    if (!col) return null;
-    const doc = await col.findOne({ _id: uid });
-    return doc?.scene.camera.rotation;
-}
-
 export async function getCameraTarget(uid: string) {
     const col = await getModelsCollection();
     if (!col) return null;
@@ -59,21 +52,6 @@ export async function updateCameraPosition(uid: string, position: Vector3Type) {
         {
             $set: {
                 "scene.camera.position": position,
-                "scene.updatedAt": new Date(),
-            },
-        }
-    );
-    return result.acknowledged;
-}
-
-export async function updateCameraRotation(uid: string, rotation: Vector3Type) {
-    const col = await getModelsCollection();
-    if (!col) return null;
-    const result = await col.updateOne(
-        { _id: uid },
-        {
-            $set: {
-                "scene.camera.rotation": rotation,
                 "scene.updatedAt": new Date(),
             },
         }
@@ -155,4 +133,12 @@ export async function updateCameraType(uid: string, type: CAMERA_TYPES) {
         }
     );
     return result.acknowledged;
+}
+
+export async function getCamera(uid: string) {
+    const col = await getModelsCollection();
+    if (!col) return null;
+    const id = uid;
+    const doc = await col.findOne({ _id: id });
+    return doc?.scene?.camera || null;
 }

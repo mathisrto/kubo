@@ -44,67 +44,53 @@ enum ModelFileFormat {
 # Types principaux
 
 type Model3D {
-    id: String!
-    name: String!
-    fileId: String!
-    format: ModelFileFormat!
-    position: Vector3!
-    rotation: Vector3!
-    scale: Vector3!
+    id: String
+    name: String
+    fileId: String
+    format: ModelFileFormat
+    position: Vector3
+    rotation: Vector3
+    scale: Vector3
     materialId: String
     metadata: JSON
 }
 
-type SceneObject {
-    id: String!
-    name: String!
-    vertices: [Vector3!]!
-    indices: [Int!]!
-    position: Vector3!
-    rotation: Vector3!
-    scale: Vector3!
-    materialId: String!
-}
-
 type Light {
-    id: String!
-    name: String!
-    position: Vector3!
-    color: Color!
-    intensity: Float!
-    range: Float!
-    type: LightType!
+    id: String
+    name: String
+    position: Vector3
+    color: Color
+    intensity: Float
+    range: Float
+    type: LightType
     colorMultiplier: Float
 }
 
 type Material {
-    id: String!
-    name: String!
-    albedo: Color!
-    metallic: Float!
-    roughness: Float!
-    ao: Float!
-    emissive: Color!
+    id: String
+    name: String
+    albedo: Color
+    metallic: Float
+    roughness: Float
+    ao: Float
+    emissive: Color
 }
 
 type Camera {
-    position: Vector3!
-    rotation: Vector3!
-    target: Vector3!
-    fov: Float!
-    near: Float!
-    far: Float!
-    type: CameraType!
+    position: Vector3
+    target: Vector3
+    fov: Float
+    near: Float
+    far: Float
+    type: CameraType
 }
 
 type AmbientLight {
-    color: Color!
-    intensity: Float!
-    colorMultiplier: Float
+    intensity: Float
+    environmentMap: String
 }
 
 type Scene {
-    objects: [SceneObject!]!
     models3d: [Model3D!]!
     lights: [Light!]!
     materials: [Material!]!
@@ -114,7 +100,7 @@ type Scene {
     updatedAt: String!
 }
 
-# Inputs
+# Input types
 
 input Vector3Input {
     x: Float!
@@ -129,52 +115,56 @@ input ColorInput {
     a: Float!
 }
 
-input SceneObjectInput {
-    name: String!
-    vertices: [Vector3Input!]!
-    indices: [Int!]!
-    position: Vector3Input!
-    rotation: Vector3Input!
-    scale: Vector3Input!
-    materialId: String!
-}
-
 input LightInput {
-    name: String!
-    position: Vector3Input!
-    color: ColorInput!
-    intensity: Float!
-    range: Float!
-    type: LightType!
+    id: String!
+    name: String
+    position: Vector3Input
+    color: ColorInput
+    intensity: Float
+    range: Float
+    type: LightType
     colorMultiplier: Float
 }
 
 input MaterialInput {
-    name: String!
-    albedo: ColorInput!
-    metallic: Float!
-    roughness: Float!
-    ao: Float!
-    emissive: ColorInput!
+    id: String!
+    name: String
+    albedo: ColorInput
+    metallic: Float
+    roughness: Float
+    ao: Float
+    emissive: ColorInput
+}
+
+input Model3DInput {
+    id: String!
+    name: String
+    fileId: String!
+    format: ModelFileFormat
+    position: Vector3Input
+    rotation: Vector3Input
+    scale: Vector3Input
+    materialId: String
+    metadata: JSON
 }
 
 # Queries
 
 type Query {
     # AmbientLight
-    getAmbientLightColor: Color
     getAmbientLightIntensity: Float
-    getAmbientLightColorMultiplier: Float
     getAmbientLight: AmbientLight
+    getAmbientLightEnvironmentMap: String
+
     # Camera
     getCameraPosition: Vector3!
-    getCameraRotation: Vector3!
     getCameraTarget: Vector3!
     getCameraFOV: Float!
     getCameraNear: Float!
     getCameraFar: Float!
     getCameraType: CameraType!
     getCamera: Camera
+
     # Light
     getLightById(id: String!): Light
     getLightName(id: String!): String
@@ -185,6 +175,7 @@ type Query {
     getLightType(id: String!): LightType
     getLightColorMultiplier(id: String!): Float
     getLights: [Light!]!
+
     # Material
     getMaterialById(id: String!): Material
     getMaterialName(id: String!): String
@@ -194,27 +185,22 @@ type Query {
     getMaterialAO(id: String!): Float
     getMaterialEmissive(id: String!): Color
     getMaterials: [Material!]!
+
     # Model3D
     getModel3DById(id: String!): Model3D
     getModel3DName(id: String!): String
-    getModel3DFileId(id: String!): String
+    getModel3DFileId(id: String!): String!
     getModel3DFormat(id: String!): ModelFileFormat
     getModel3DPosition(id: String!): Vector3
     getModel3DRotation(id: String!): Vector3
     getModel3DScale(id: String!): Vector3
     getModel3DMaterialId(id: String!): String
     getModel3Ds: [Model3D!]!
-    # SceneObject
-    getSceneObjectById(id: String!): SceneObject
-    getSceneObjectName(id: String!): String
-    getSceneObjectPosition(id: String!): Vector3
-    getSceneObjectRotation(id: String!): Vector3
-    getSceneObjectScale(id: String!): Vector3
-    getSceneObjectMaterialId(id: String!): String
-    getSceneObjects: [SceneObject!]!
+
     # Scene
     getScene: Scene
     hasScene: Boolean!
+
     # User
     getApiKey(userId: String!): String
 }
@@ -223,17 +209,17 @@ type Query {
 
 type Mutation {
     # AmbientLight
-    updateAmbientLightColor(color: ColorInput!): MutationResult!
     updateAmbientLightIntensity(intensity: Float!): MutationResult!
-    updateAmbientLightColorMultiplier(colorMultiplier: Float!): MutationResult!
+    updateAmbientLightEnvironmentMap(environmentMap: String): MutationResult!
+
     # Camera
     updateCameraPosition(position: Vector3Input!): MutationResult!
-    updateCameraRotation(rotation: Vector3Input!): MutationResult!
     updateCameraTarget(target: Vector3Input!): MutationResult!
     updateCameraFOV(fov: Float!): MutationResult!
     updateCameraNear(near: Float!): MutationResult!
     updateCameraFar(far: Float!): MutationResult!
     updateCameraType(type: CameraType!): MutationResult!
+
     # Light
     updateLightName(id: String!, name: String!): MutationResult!
     updateLightPosition(id: String!, position: Vector3Input!): MutationResult!
@@ -247,6 +233,7 @@ type Mutation {
     ): MutationResult!
     createLight(light: LightInput!): String!
     removeLight(lightId: String!): MutationResult!
+
     # Material
     updateMaterialName(id: String!, name: String!): MutationResult!
     updateMaterialAlbedo(id: String!, albedo: ColorInput!): MutationResult!
@@ -256,6 +243,7 @@ type Mutation {
     updateMaterialEmissive(id: String!, emissive: ColorInput!): MutationResult!
     createMaterial(material: MaterialInput!): String!
     removeMaterial(materialId: String!): MutationResult!
+
     # Model3D
     updateModel3DName(id: String!, name: String!): MutationResult!
     updateModel3DFileId(id: String!, fileId: String!): MutationResult!
@@ -264,34 +252,13 @@ type Mutation {
     updateModel3DRotation(id: String!, rotation: Vector3Input!): MutationResult!
     updateModel3DScale(id: String!, scale: Vector3Input!): MutationResult!
     updateModel3DMaterialId(id: String!, materialId: String!): MutationResult!
-    createModel3D(
-        name: String!
-        fileId: String!
-        format: ModelFileFormat!
-        position: Vector3Input
-        rotation: Vector3Input
-        scale: Vector3Input
-        materialId: String
-        metadata: JSON
-    ): String!
+    createModel3D(model3d: Model3DInput!): String!
     removeModel3D(modelId: String!): MutationResult!
-    # SceneObject
-    updateSceneObjectName(id: String!, name: String!): MutationResult!
-    updateSceneObjectPosition(
-        id: String!
-        position: Vector3Input!
-    ): MutationResult!
-    updateSceneObjectRotation(
-        id: String!
-        rotation: Vector3Input!
-    ): MutationResult!
-    updateSceneObjectScale(id: String!, scale: Vector3Input!): MutationResult!
-    updateSceneObjectMaterial(id: String!, materialId: String!): MutationResult!
-    createSceneObject(object: SceneObjectInput!): String!
-    removeSceneObject(objectId: String!): MutationResult!
+
     # Scene
     createOrResetScene: MutationResult!
     deleteScene: MutationResult!
+
     # User
     updateApiKey(userId: String!, apiKey: String!): MutationResult!
 }

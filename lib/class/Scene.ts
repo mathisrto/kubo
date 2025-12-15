@@ -1,4 +1,8 @@
-import { SceneRepository } from "../database/graphql/repositories/SceneRepository";
+import { AmbientLightRepository } from "../database/graphql/repositories/AmbientLightRepository";
+import { CameraRepository } from "../database/graphql/repositories/CameraRepository";
+import { LightRepository } from "../database/graphql/repositories/LightRepository";
+import { MaterialRepository } from "../database/graphql/repositories/MaterialRepository";
+import { Model3DRepository } from "../database/graphql/repositories/Model3DRepository";
 import { AmbientLight, AmbientLightType } from "./AmbientLight";
 import { Camera, CameraType } from "./Camera";
 import { Light, LightType } from "./Light";
@@ -17,9 +21,9 @@ import { ModelClass } from "./ModelClass";
  * @property {Date} createdAt - The date and time when the scene was created.
  */
 export type SceneType = {
-    models3d?: Model3DType[];
+    models3d: Model3DType[];
     camera: CameraType;
-    lights?: LightType[];
+    lights: LightType[];
     ambientLight: AmbientLightType;
     materials?: MaterialType[];
     updatedAt: Date;
@@ -82,8 +86,11 @@ export class Scene extends ModelClass {
     private _materials: Material[];
     private _updatedAt: Date;
     private _createdAt: Date;
-
-    private repository = new SceneRepository();
+    private ambientLightRepository = new AmbientLightRepository();
+    private cameraRepository = new CameraRepository();
+    private lightRepository = new LightRepository();
+    private materialRepository = new MaterialRepository();
+    private model3DRepository = new Model3DRepository();
     private _isSaving = false; // Prevent concurrent saves
     private _autoSaveEnabled = true;
     private _autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -106,13 +113,18 @@ export class Scene extends ModelClass {
     constructor(scene: SceneType) {
         super();
         this._models3d = (scene.models3d || []).map(
-            (model) => new Model3D(model)
+            (model) => new Model3D(model, this.model3DRepository)
         );
-        this._camera = new Camera(scene.camera);
-        this._lights = (scene.lights || []).map((light) => new Light(light));
-        this._ambientLight = new AmbientLight(scene.ambientLight);
+        this._camera = new Camera(scene.camera, this.cameraRepository);
+        this._lights = (scene.lights || []).map(
+            (light) => new Light(light, this.lightRepository)
+        );
+        this._ambientLight = new AmbientLight(
+            scene.ambientLight,
+            this.ambientLightRepository
+        );
         this._materials = (scene.materials || []).map(
-            (material) => new Material(material)
+            (material) => new Material(material, this.materialRepository)
         );
         this._updatedAt = scene.updatedAt;
         this._createdAt = scene.createdAt;
@@ -142,6 +154,16 @@ export class Scene extends ModelClass {
 
         // Tous les matériaux
         this.registerChildren(this._materials);
+    }
+
+    updateFromState(state: SceneType): void {
+        if (state.camera) {
+            this._camera.updateFromState(state.camera);
+        }
+
+        if (state.ambientLight) {
+            this._ambientLight.updateFromState(state.ambientLight);
+        }
     }
 
     /* Getters */
@@ -521,13 +543,17 @@ export class Scene extends ModelClass {
                         console.log(
                             "[Scene.save] Fetching existing 3D models..."
                         );
-                        const models = await this.repository.getModel3Ds();
+                        const models = (
+                            await this.model3DRepository.getModel3Ds()
+                        ).map((m) => {
+                            return new Model3D(m, this.model3DRepository);
+                        });
                         return models;
                     },
                     async (model) => {
                         console.log("[Scene.save] Creating new 3D model...");
-                        return await this.repository.createModel3D(
-                            model as Model3D
+                        return await this.model3DRepository.createModel3D(
+                            model.serialize()
                         );
                     },
                     async (id) => {
@@ -535,7 +561,7 @@ export class Scene extends ModelClass {
                             "[Scene.save] Removing 3D model with id:",
                             id
                         );
-                        await this.repository.removeModel3D(id);
+                        await this.model3DRepository.removeModel3D(id);
                     }
                 );
             }
@@ -545,18 +571,22 @@ export class Scene extends ModelClass {
                     this._lights,
                     async () => {
                         console.log("[Scene.save] Fetching existing lights...");
-                        const lights = await this.repository.getLights();
+                        const lights = (
+                            await this.lightRepository.getLights()
+                        ).map((l) => {
+                            return new Light(l, this.lightRepository);
+                        });
                         return lights;
                     },
                     async (light) => {
                         console.log("[Scene.save] Creating new light...");
-                        return await this.repository.createLight(
-                            light as Light
+                        return await this.lightRepository.createLight(
+                            light.serialize()
                         );
                     },
                     async (id) => {
                         console.log("[Scene.save] Removing light with id:", id);
-                        await this.repository.removeLight(id);
+                        await this.lightRepository.removeLight(id);
                     }
                 );
             }
@@ -568,13 +598,17 @@ export class Scene extends ModelClass {
                         console.log(
                             "[Scene.save] Fetching existing materials..."
                         );
-                        const materials = await this.repository.getMaterials();
+                        const materials = (
+                            await this.materialRepository.getMaterials()
+                        ).map((m) => {
+                            return new Material(m, this.materialRepository);
+                        });
                         return materials;
                     },
                     async (material) => {
                         console.log("[Scene.save] Creating new material...");
-                        return await this.repository.createMaterial(
-                            material as Material
+                        return await this.materialRepository.createMaterial(
+                            material.serialize()
                         );
                     },
                     async (id) => {
@@ -582,7 +616,7 @@ export class Scene extends ModelClass {
                             "[Scene.save] Removing material with id:",
                             id
                         );
-                        await this.repository.removeMaterial(id);
+                        await this.materialRepository.removeMaterial(id);
                     }
                 );
             }
@@ -651,19 +685,22 @@ export class Scene extends ModelClass {
      * Le modèle est généré côté client et stocké temporairement.
      */
     async createCube(): Promise<void> {
-        const model = new Model3D({
-            id: `cube-${Date.now()}`,
-            name: `Cube-${Date.now()}`,
-            fileId: "procedural-cube", // Marqueur pour géométrie procédurale
-            format: MODEL_FILE_FORMAT.GLB,
-            position: { x: 0, y: 0, z: 0 },
-            rotation: { x: 0, y: 0, z: 0 },
-            scale: { x: 1, y: 1, z: 1 },
-            metadata: {
-                procedural: true,
-                geometry: "cube",
+        const model = new Model3D(
+            {
+                id: `cube-${Date.now()}`,
+                name: `Cube-${Date.now()}`,
+                fileId: "procedural-cube", // Marqueur pour géométrie procédurale
+                format: MODEL_FILE_FORMAT.GLB,
+                position: { x: 0, y: 0, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+                metadata: {
+                    procedural: true,
+                    geometry: "cube",
+                },
             },
-        });
+            this.model3DRepository
+        );
         this.addModel(model);
     }
 
@@ -671,19 +708,22 @@ export class Scene extends ModelClass {
      * Crée une sphère procédurale dans la scène.
      */
     async createSphere(): Promise<void> {
-        const model = new Model3D({
-            id: `sphere-${Date.now()}`,
-            name: `Sphere-${Date.now()}`,
-            fileId: "procedural-sphere",
-            format: MODEL_FILE_FORMAT.GLB,
-            position: { x: 0, y: 0, z: 0 },
-            rotation: { x: 0, y: 0, z: 0 },
-            scale: { x: 1, y: 1, z: 1 },
-            metadata: {
-                procedural: true,
-                geometry: "sphere",
+        const model = new Model3D(
+            {
+                id: `sphere-${Date.now()}`,
+                name: `Sphere-${Date.now()}`,
+                fileId: "procedural-sphere",
+                format: MODEL_FILE_FORMAT.GLB,
+                position: { x: 0, y: 0, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+                metadata: {
+                    procedural: true,
+                    geometry: "sphere",
+                },
             },
-        });
+            this.model3DRepository
+        );
         this.addModel(model);
     }
 
@@ -691,19 +731,22 @@ export class Scene extends ModelClass {
      * Crée un cylindre procédural dans la scène.
      */
     async createCylinder(): Promise<void> {
-        const model = new Model3D({
-            id: `cylinder-${Date.now()}`,
-            name: `Cylinder-${Date.now()}`,
-            fileId: "procedural-cylinder",
-            format: MODEL_FILE_FORMAT.GLB,
-            position: { x: 0, y: 0, z: 0 },
-            rotation: { x: 0, y: 0, z: 0 },
-            scale: { x: 1, y: 1, z: 1 },
-            metadata: {
-                procedural: true,
-                geometry: "cylinder",
+        const model = new Model3D(
+            {
+                id: `cylinder-${Date.now()}`,
+                name: `Cylinder-${Date.now()}`,
+                fileId: "procedural-cylinder",
+                format: MODEL_FILE_FORMAT.GLB,
+                position: { x: 0, y: 0, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+                metadata: {
+                    procedural: true,
+                    geometry: "cylinder",
+                },
             },
-        });
+            this.model3DRepository
+        );
         this.addModel(model);
     }
 
@@ -711,19 +754,22 @@ export class Scene extends ModelClass {
      * Crée un plan procédural dans la scène.
      */
     async createPlane(): Promise<void> {
-        const model = new Model3D({
-            id: `plane-${Date.now()}`,
-            name: `Plane-${Date.now()}`,
-            fileId: "procedural-plane",
-            format: MODEL_FILE_FORMAT.GLB,
-            position: { x: 0, y: 0, z: 0 },
-            rotation: { x: 0, y: 0, z: 0 },
-            scale: { x: 1, y: 1, z: 1 },
-            metadata: {
-                procedural: true,
-                geometry: "plane",
+        const model = new Model3D(
+            {
+                id: `plane-${Date.now()}`,
+                name: `Plane-${Date.now()}`,
+                fileId: "procedural-plane",
+                format: MODEL_FILE_FORMAT.GLB,
+                position: { x: 0, y: 0, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 },
+                scale: { x: 1, y: 1, z: 1 },
+                metadata: {
+                    procedural: true,
+                    geometry: "plane",
+                },
             },
-        });
+            this.model3DRepository
+        );
         this.addModel(model);
     }
 }
