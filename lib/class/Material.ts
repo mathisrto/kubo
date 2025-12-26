@@ -255,7 +255,10 @@ export class Material extends ModelClass {
         }
 
         if (this.dirtyFields.has("albedo")) {
-            await this.repository.updateMaterialAlbedo(this._id, this.albedo);
+            await this.repository.updateMaterialAlbedo(
+                this._id,
+                this.albedo.serialize()
+            );
         }
 
         if (this.dirtyFields.has("metallic")) {
@@ -279,7 +282,7 @@ export class Material extends ModelClass {
         if (this.dirtyFields.has("emissive")) {
             await this.repository.updateMaterialEmissive(
                 this._id,
-                this.emissive
+                this.emissive?.serialize() ?? { r: 0, g: 0, b: 0, a: 1 }
             );
         }
 

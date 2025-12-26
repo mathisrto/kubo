@@ -279,7 +279,7 @@ export const DashboardNavbar = () => {
     };
 
     return (
-        <header className="sticky top-0 z-30 border-b bg-background/60 backdrop-blur-sm">
+        <header className="fixed top-0 z-30 border-b bg-background backdrop-blur-sm w-full">
             <div className="mx-auto flex h-16 items-center justify-between px-4">
                 <div className="flex items-center gap-4">
                     <DropdownMenu>

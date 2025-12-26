@@ -249,12 +249,10 @@ export class Camera extends ModelClass {
             this._position.countDirtyFields() > 0 ||
             this.dirtyFields.has("position")
         ) {
-            console.log(
-                "[Camera.save] Updating position:",
-                this.position.serialize()
-            );
+            const serializedPosition = this.position.serialize();
+            console.log("[Camera.save] Updating position:", serializedPosition);
             promises.push(
-                this.repository.updateCameraPosition(this.position.serialize())
+                this.repository.updateCameraPosition(serializedPosition)
             );
         }
 
@@ -263,13 +261,9 @@ export class Camera extends ModelClass {
             this._target.countDirtyFields() > 0 ||
             this.dirtyFields.has("target")
         ) {
-            console.log(
-                "[Camera.save] Updating target:",
-                this.target.serialize()
-            );
-            promises.push(
-                this.repository.updateCameraTarget(this.target.serialize())
-            );
+            const serializedTarget = this.target.serialize();
+            console.log("[Camera.save] Updating target:", serializedTarget);
+            promises.push(this.repository.updateCameraTarget(serializedTarget));
         }
 
         if (this.dirtyFields.has("fov")) {

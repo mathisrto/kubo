@@ -1,3 +1,4 @@
+import { LIGHT_TYPES } from "../constants";
 import { AmbientLightRepository } from "../database/graphql/repositories/AmbientLightRepository";
 import { CameraRepository } from "../database/graphql/repositories/CameraRepository";
 import { LightRepository } from "../database/graphql/repositories/LightRepository";
@@ -31,7 +32,7 @@ export type SceneType = {
 };
 
 type CollectionType = {
-    id?: string;
+    id?: string | null;
     save: () => Promise<void>;
     countDirtyFields: () => number;
     clearDirtyFields: () => void;
@@ -688,7 +689,7 @@ export class Scene extends ModelClass {
         const model = new Model3D(
             {
                 id: `cube-${Date.now()}`,
-                name: `Cube-${Date.now()}`,
+                name: "Cube",
                 fileId: "procedural-cube", // Marqueur pour géométrie procédurale
                 format: MODEL_FILE_FORMAT.GLB,
                 position: { x: 0, y: 0, z: 0 },
@@ -712,7 +713,7 @@ export class Scene extends ModelClass {
         const model = new Model3D(
             {
                 id: `sphere-${Date.now()}`,
-                name: `Sphere-${Date.now()}`,
+                name: "Sphère",
                 fileId: "procedural-sphere",
                 format: MODEL_FILE_FORMAT.GLB,
                 position: { x: 0, y: 0, z: 0 },
@@ -736,7 +737,7 @@ export class Scene extends ModelClass {
         const model = new Model3D(
             {
                 id: `cylinder-${Date.now()}`,
-                name: `Cylinder-${Date.now()}`,
+                name: "Cylindre",
                 fileId: "procedural-cylinder",
                 format: MODEL_FILE_FORMAT.GLB,
                 position: { x: 0, y: 0, z: 0 },
@@ -760,7 +761,7 @@ export class Scene extends ModelClass {
         const model = new Model3D(
             {
                 id: `plane-${Date.now()}`,
-                name: `Plane-${Date.now()}`,
+                name: "Plan",
                 fileId: "procedural-plane",
                 format: MODEL_FILE_FORMAT.GLB,
                 position: { x: 0, y: 0, z: 0 },
@@ -775,5 +776,21 @@ export class Scene extends ModelClass {
             this.model3DRepository
         );
         this.addModel(model);
+    }
+
+    async createLight(): Promise<void> {
+        const light = new Light(
+            {
+                id: `light-${Date.now()}`,
+                name: "Lumière ponctuelle",
+                type: LIGHT_TYPES.POINT,
+                color: { r: 255, g: 255, b: 255, a: 1 },
+                intensity: 1,
+                range: 10,
+                position: { x: 0, y: 0, z: 0 },
+            },
+            this.lightRepository
+        );
+        this.addLight(light);
     }
 }

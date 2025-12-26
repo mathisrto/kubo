@@ -127,11 +127,13 @@ export class AmbientLight extends ModelClass {
         if (this.countDirtyFields() === 0) return;
 
         if (this.dirtyFields.has("intensity")) {
-            await this.repository.updateAmbientLightIntensity(this._intensity);
+            await this.repository.updateAmbientLightIntensity(
+                Number(this._intensity)
+            );
         }
         if (this.dirtyFields.has("environmentMap")) {
             await this.repository.updateAmbientLightEnvironmentMap(
-                this._environmentMap
+                String(this._environmentMap)
             );
         }
         this.clearDirtyFields();

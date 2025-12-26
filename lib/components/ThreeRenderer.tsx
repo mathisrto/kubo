@@ -11,13 +11,14 @@ import {
     Select,
     TransformControls,
     useCursor,
+    useHelper,
     useSelect,
 } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Outline } from "@react-three/postprocessing";
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { CAMERA_TYPES } from "../constants";
+import { CAMERA_TYPES, OBJECT_TYPES } from "../constants";
 import { useScene } from "../contexts/SceneContext";
 import { useTransform } from "../contexts/TransformContext";
 
@@ -36,6 +37,12 @@ function Model3D({
     const [hovered, setHover] = useState(false);
     const meshRef = useRef<THREE.Mesh>(null);
 
+    // Stocker une ref vers le model pour la synchronisation
+    const modelRef = useRef(model);
+    useEffect(() => {
+        modelRef.current = model;
+    }, [model]);
+
     const isProcedural = model.metadata?.procedural === true;
     const geometry = model.metadata?.geometry;
 
@@ -51,22 +58,14 @@ function Model3D({
         <mesh
             receiveShadow
             ref={meshRef}
-            userData={{ id: model.id, model }}
-            position={[
-                model.positionVector.x,
-                model.positionVector.y,
-                model.positionVector.z,
-            ]}
+            userData={{ id: model.id, type: "model" }}
+            position={[model.position.x, model.position.y, model.position.z]}
             rotation={[
-                model.rotationVector.x,
-                model.rotationVector.y,
-                model.rotationVector.z,
+                degToRad(model.rotation.x),
+                degToRad(model.rotation.y),
+                degToRad(model.rotation.z),
             ]}
-            scale={[
-                model.scaleVector.x,
-                model.scaleVector.y,
-                model.scaleVector.z,
-            ]}
+            scale={[model.scale.x, model.scale.y, model.scale.z]}
             onClick={(e) => {
                 if (isTransforming) {
                     e.stopPropagation();
@@ -95,6 +94,130 @@ function Model3D({
 }
 
 /**
+ * Composant pour une lumière 3D native Three.js avec helper visuel
+ */
+import {
+    DirectionalLightHelper,
+    PointLightHelper,
+    SpotLightHelper,
+} from "three";
+import { degToRad, radToDeg } from "three/src/math/MathUtils.js";
+import { LIGHT_TYPES } from "../constants";
+
+function Light3D({
+    light,
+    onMeshCreated,
+}: {
+    light: any;
+    isTransforming?: boolean;
+    onMeshCreated: (id: string, mesh: THREE.Mesh) => void;
+}) {
+    // Refs pour chaque type de lumière
+    const pointRef = useRef<THREE.PointLight>(null);
+    const spotRef = useRef<THREE.SpotLight>(null);
+    const dirRef = useRef<THREE.DirectionalLight>(null);
+    // Helper invisible pour la sélection
+    const helperRef = useRef<THREE.Mesh>(null);
+
+    useEffect(() => {
+        if (helperRef.current) {
+            onMeshCreated(light.id, helperRef.current);
+        }
+    }, [light.id, onMeshCreated]);
+
+    // Couleur de la lumière
+    const color = light.color
+        ? `rgb(${light.color.r},${light.color.g},${light.color.b})`
+        : "#fff";
+
+    const size = 0.2;
+
+    // Helper visuel selon le type
+    if (light.type === LIGHT_TYPES.POINT) {
+        useHelper(
+            pointRef as React.RefObject<THREE.Object3D>,
+            PointLightHelper,
+            size
+        );
+    } else if (light.type === LIGHT_TYPES.SPOT) {
+        useHelper(
+            spotRef as React.RefObject<THREE.Object3D>,
+            SpotLightHelper,
+            size
+        );
+    } else if (light.type === LIGHT_TYPES.DIRECTIONAL) {
+        useHelper(
+            dirRef as React.RefObject<THREE.Object3D>,
+            DirectionalLightHelper,
+            size
+        );
+    }
+
+    // Rendu dynamique selon le type
+    return (
+        <>
+            {light.type === LIGHT_TYPES.POINT && (
+                <pointLight
+                    ref={pointRef}
+                    position={[
+                        light.position?.x ?? 0,
+                        light.position?.y ?? 0,
+                        light.position?.z ?? 0,
+                    ]}
+                    color={color}
+                    intensity={light.intensity ?? 1}
+                    distance={light.range ?? 0}
+                    userData={{ id: light.id, type: "light" }}
+                />
+            )}
+            {light.type === LIGHT_TYPES.SPOT && (
+                <spotLight
+                    ref={spotRef}
+                    position={[
+                        light.position?.x ?? 0,
+                        light.position?.y ?? 0,
+                        light.position?.z ?? 0,
+                    ]}
+                    color={color}
+                    intensity={light.intensity ?? 1}
+                    distance={light.range ?? 0}
+                    angle={light.angle ?? Math.PI / 6}
+                    penumbra={light.penumbra ?? 0.1}
+                    userData={{ id: light.id, type: "light" }}
+                />
+            )}
+            {light.type === LIGHT_TYPES.DIRECTIONAL && (
+                <directionalLight
+                    ref={dirRef}
+                    position={[
+                        light.position?.x ?? 0,
+                        light.position?.y ?? 0,
+                        light.position?.z ?? 0,
+                    ]}
+                    color={color}
+                    intensity={light.intensity ?? 1}
+                    userData={{ id: light.id, type: "light" }}
+                />
+            )}
+            {/* Helper invisible pour la sélection/manipulation */}
+            <mesh
+                ref={helperRef}
+                userData={{ id: light.id, type: "light" }}
+                position={[
+                    light.position?.x ?? 0,
+                    light.position?.y ?? 0,
+                    light.position?.z ?? 0,
+                ]}
+                visible={false}
+            >
+                <sphereGeometry args={[size, 16, 16]} />
+                <meshBasicMaterial color={color} />
+            </mesh>
+        </>
+    );
+}
+
+/**
  * Scene content - everything inside the Canvas
  */
 /**
@@ -106,7 +229,7 @@ function SelectionObserver({
     onSelectionChange: (mesh: THREE.Mesh | undefined) => void;
 }) {
     const selected = useSelect();
-    const { selectedObject, setSelectedObject } = useTransform();
+    const { setSelectedObject } = useTransform();
 
     useEffect(() => {
         if (!selected || selected.length === 0) {
@@ -120,11 +243,9 @@ function SelectionObserver({
         const validMesh = selected.filter((obj): obj is THREE.Mesh => {
             return obj instanceof THREE.Mesh;
         })[0];
-        setSelectedObject(validMesh?.userData.id || null);
-        console.log(
-            "Selection changed: selected mesh id =",
-            validMesh?.userData.id || null
-        );
+        const id = validMesh?.userData.id || null;
+        const type = validMesh?.userData.type || null;
+        setSelectedObject(id && type ? { id, type } : null);
         onSelectionChange(validMesh);
     }, [selected, onSelectionChange]);
 
@@ -144,7 +265,7 @@ function SceneContent() {
     useEffect(() => {
         // Lorsque selectedObject change, mettre à jour selectedMesh
         if (selectedObject) {
-            const mesh = meshes[selectedObject];
+            const mesh = meshes[selectedObject.id];
             setSelectedMesh(mesh);
         }
     }, [selectedObject, meshes, setSelected]);
@@ -205,6 +326,7 @@ function SceneContent() {
         );
     }, [scene.ambientLight.environmentMap]);
 
+    // Gestion des meshes pour modèles et lumières
     const handleMeshCreated = useCallback((id: string, mesh: THREE.Mesh) => {
         setMeshes((prev) => ({
             ...prev,
@@ -229,10 +351,20 @@ function SceneContent() {
             />
             <Select>
                 <SelectionObserver onSelectionChange={handleSelectionChange} />
+                {/* Modèles 3D */}
                 {scene.models3d?.map((model) => (
                     <Model3D
                         key={model.id}
                         model={model}
+                        isTransforming={isTransforming}
+                        onMeshCreated={handleMeshCreated}
+                    />
+                ))}
+                {/* Lumières 3D */}
+                {scene.lights?.map((light) => (
+                    <Light3D
+                        key={light.id}
+                        light={light}
                         isTransforming={isTransforming}
                         onMeshCreated={handleMeshCreated}
                     />
@@ -244,21 +376,43 @@ function SceneContent() {
                 <TransformControls
                     object={selectedMesh}
                     mode={transformMode}
+                    translationSnap={0.01}
+                    rotationSnap={degToRad(1)}
+                    scaleSnap={0.01}
+                    showX={true}
+                    showY={true}
+                    showZ={true}
                     onMouseDown={() => setIsTransforming(true)}
                     onMouseUp={() => setIsTransforming(false)}
                     onObjectChange={() => {
                         const mesh = selectedMesh;
-                        const model = mesh.userData.model;
-                        if (model) {
-                            model.positionVector.x = mesh.position.x;
-                            model.positionVector.y = mesh.position.y;
-                            model.positionVector.z = mesh.position.z;
-                            model.rotationVector.x = mesh.rotation.x;
-                            model.rotationVector.y = mesh.rotation.y;
-                            model.rotationVector.z = mesh.rotation.z;
-                            model.scaleVector.x = mesh.scale.x;
-                            model.scaleVector.y = mesh.scale.y;
-                            model.scaleVector.z = mesh.scale.z;
+                        // Synchronisation via userData.type et refs
+                        if (mesh.userData.type === OBJECT_TYPES.MODEL) {
+                            // Chercher le model correspondant
+                            const model = scene.models3d.find(
+                                (m) => m.id === mesh.userData.id
+                            );
+                            if (model) {
+                                model.position.x = mesh.position.x;
+                                model.position.y = mesh.position.y;
+                                model.position.z = mesh.position.z;
+                                model.rotation.x = radToDeg(mesh.rotation.x);
+                                model.rotation.y = radToDeg(mesh.rotation.y);
+                                model.rotation.z = radToDeg(mesh.rotation.z);
+                                model.scale.x = mesh.scale.x;
+                                model.scale.y = mesh.scale.y;
+                                model.scale.z = mesh.scale.z;
+                            }
+                        }
+                        if (mesh.userData.type === OBJECT_TYPES.LIGHT) {
+                            const light = scene.lights.find(
+                                (l) => l.id === mesh.userData.id
+                            );
+                            if (light && light.position) {
+                                light.position.x = mesh.position.x;
+                                light.position.y = mesh.position.y;
+                                light.position.z = mesh.position.z;
+                            }
                         }
                     }}
                 />
@@ -373,27 +527,15 @@ const ThreeScene = () => {
 
     if (isLoading) {
         return (
-            <div
-                style={{
-                    width: "100%",
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                }}
-            >
+            <div className="w-full h-full flex justify-center items-center">
                 <p>Chargement de la scène...</p>
             </div>
         );
     }
 
     return (
-        <div style={{ width: "100%", height: "100%", position: "relative" }}>
-            <Canvas
-                shadows
-                camera={{ position: [5, 5, 5], fov: 75 }}
-                style={{ background: "#1a1a1a" }}
-            >
+        <div className="w-full h-full bg-background">
+            <Canvas shadows camera={{ position: [5, 5, 5], fov: 75 }}>
                 <SceneContent />
             </Canvas>
         </div>

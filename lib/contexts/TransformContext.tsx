@@ -1,15 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
-
-// Définir les types possibles
-export type TransformMode = null | "translate" | "rotate" | "scale";
+import { OBJECT_TYPES, TRANSFORM_MODES } from "../constants";
 
 type TransformContextType = {
-    transformMode: TransformMode;
-    setTransformMode: (mode: TransformMode) => void;
-    selectedObject: string | null;
-    setSelectedObject: (id: string | null) => void;
+    transformMode: TRANSFORM_MODES | null;
+    setTransformMode: (mode: TRANSFORM_MODES | null) => void;
+    selectedObject: SelectedObjectProps | null;
+    setSelectedObject: (obj: SelectedObjectProps | null) => void;
 };
 
 // Créer le contexte
@@ -17,12 +15,20 @@ const TransformContext = createContext<TransformContextType | undefined>(
     undefined
 );
 
+interface SelectedObjectProps {
+    id: string;
+    type: OBJECT_TYPES;
+}
+
 // Provider
 export const TransformProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
-    const [transformMode, setTransformMode] = useState<TransformMode>(null);
-    const [selectedObject, setSelectedObject] = useState<string | null>(null);
+    const [transformMode, setTransformMode] = useState<TRANSFORM_MODES | null>(
+        null
+    );
+    const [selectedObject, setSelectedObject] =
+        useState<SelectedObjectProps | null>(null);
 
     return (
         <TransformContext.Provider

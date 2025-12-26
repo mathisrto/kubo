@@ -16,7 +16,7 @@ import { Vector3, Vector3Type } from "./Vector3";
  * @property colorMultiplier - Optional multiplier to adjust the light's color intensity.
  */
 export type LightType = {
-    id: string;
+    id: string | null;
     name: string;
     position: Vector3Type;
     color: ColorType;
@@ -264,9 +264,10 @@ export class Light extends ModelClass {
      *
      * @returns {LightType} An object containing the light's name, position, color, intensity, range, and type.
      */
-    public serialize(): any {
+    public serialize(): LightType {
         // Never include id in serialization - it's not part of LightInput
         return {
+            id: this._id,
             name: this._name,
             position: this._position.serialize(),
             color: this._color.serialize(),
@@ -331,11 +332,12 @@ export class Light extends ModelClass {
             this._position.countDirtyFields() > 0 ||
             this.dirtyFields.has("position")
         ) {
-            console.log(
-                "[Light.save] Updating position:",
-                this._position.serialize()
+            const serializedPosition = this._position.serialize();
+            console.log("[Light.save] Updating position:", serializedPosition);
+            await this.repository.updateLightPosition(
+                this._id,
+                serializedPosition
             );
-            await this.repository.updateLightPosition(this._id, this.position);
             this._position.clearDirtyFields();
         }
 
@@ -344,11 +346,9 @@ export class Light extends ModelClass {
             this._color.countDirtyFields() > 0 ||
             this.dirtyFields.has("color")
         ) {
-            console.log(
-                "[Light.save] Updating color:",
-                this._color.serialize()
-            );
-            await this.repository.updateLightColor(this._id, this.color);
+            const serializedColor = this._color.serialize();
+            console.log("[Light.save] Updating color:", serializedColor);
+            await this.repository.updateLightColor(this._id, serializedColor);
             this._color.clearDirtyFields();
         }
 

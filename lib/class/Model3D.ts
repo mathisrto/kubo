@@ -119,15 +119,15 @@ export class Model3D extends ModelClass {
         return this._format;
     }
 
-    get positionVector(): Vector3 {
+    get position(): Vector3 {
         return this._positionVector;
     }
 
-    get rotationVector(): Vector3 {
+    get rotation(): Vector3 {
         return this._rotationVector;
     }
 
-    get scaleVector(): Vector3 {
+    get scale(): Vector3 {
         return this._scaleVector;
     }
 
@@ -174,37 +174,22 @@ export class Model3D extends ModelClass {
         this.markFieldDirty("metadata");
     }
 
-    /* ==================== TRANSFORM METHODS ==================== */
-
-    /**
-     * Set position of the model
-     */
-    setPosition(x: number, y: number, z: number): void {
-        this._positionVector.x = x;
-        this._positionVector.y = y;
-        this._positionVector.z = z;
+    set position(value: Vector3) {
+        this._positionVector = value;
         this.markFieldDirty("position");
     }
 
-    /**
-     * Set rotation of the model (Euler angles in radians)
-     */
-    setRotation(x: number, y: number, z: number): void {
-        this._rotationVector.x = x;
-        this._rotationVector.y = y;
-        this._rotationVector.z = z;
+    set rotation(value: Vector3) {
+        this._rotationVector = value;
         this.markFieldDirty("rotation");
     }
 
-    /**
-     * Set scale of the model
-     */
-    setScale(x: number, y: number, z: number): void {
-        this._scaleVector.x = x;
-        this._scaleVector.y = y;
-        this._scaleVector.z = z;
+    set scale(value: Vector3) {
+        this._scaleVector = value;
         this.markFieldDirty("scale");
     }
+
+    /* ==================== TRANSFORM METHODS ==================== */
 
     /**
      * Translate (move) the model by delta values
@@ -362,9 +347,9 @@ export class Model3D extends ModelClass {
         this.name = state.name;
         this.fileId = state.fileId;
         this.format = state.format;
-        this.positionVector.updateFromState(state.position);
-        this.rotationVector.updateFromState(state.rotation);
-        this.scaleVector.updateFromState(state.scale);
+        this.position.updateFromState(state.position);
+        this.rotation.updateFromState(state.rotation);
+        this.scale.updateFromState(state.scale);
         this.materialId = state.materialId;
         this.metadata = state.metadata;
     }

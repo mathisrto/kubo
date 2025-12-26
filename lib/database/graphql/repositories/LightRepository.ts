@@ -351,17 +351,17 @@ export class LightRepository {
         return (result.data as { createLight: string }).createLight;
     }
 
-    async removeLight(id: string) {
+    async removeLight(lightId: string) {
         const mutation = gql`
-            mutation removeLight($id: String!) {
-                removeLight(id: $id) {
+            mutation removeLight($lightId: String!) {
+                removeLight(lightId: $lightId) {
                     acknowledged
                 }
             }
         `;
         const result = await apolloClient.mutate({
             mutation,
-            variables: { id },
+            variables: { lightId },
         });
         return (result.data as { removeLight: { acknowledged: boolean } })
             .removeLight.acknowledged;
