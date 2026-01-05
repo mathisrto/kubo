@@ -28,7 +28,11 @@ export class FilesAdapter implements FilesPort {
         return this.bucket;
     }
 
-    public async uploadFile(buffer: Buffer, type: FileType): Promise<IFile> {
+    public async uploadFile(
+        buffer: Buffer,
+        type: FileType,
+        extension: string
+    ): Promise<IFile> {
         const hash = crypto.createHash("sha256").update(buffer).digest("hex");
 
         // Vérifier si le fichier existe déjà
@@ -55,6 +59,7 @@ export class FilesAdapter implements FilesPort {
                     type,
                     gridFsId: uploadStream.id,
                     size: buffer.length,
+                    extension,
                     uploadedAt: new Date(),
                     use: 1,
                 });
@@ -68,6 +73,27 @@ export class FilesAdapter implements FilesPort {
     public async downloadFile(gridFsId: File): Promise<Readable> {
         const bucket = await this.getBucket();
         return bucket.openDownloadStream(new mongo.ObjectId(gridFsId));
+    }
+
+    public async downloadFileByName(filename: string): Promise<Readable> {
+        const fileRecord = await FileModel.findOne({ filename });
+        if (!fileRecord) {
+            throw new Error(`File not found: ${filename}`);
+        }
+        const bucket = await this.getBucket();
+        return bucket.openDownloadStream(fileRecord.gridFsId);
+    }
+
+    public async getFileInfo(
+        gridFsId: string | mongo.ObjectId
+    ): Promise<IFile> {
+        const fileRecord = await FileModel.findOne({
+            gridFsId: new mongo.ObjectId(gridFsId),
+        });
+        if (!fileRecord) {
+            throw new Error(`File not found: ${gridFsId}`);
+        }
+        return fileRecord;
     }
 
     public async deleteFile(gridFsId: string | mongo.ObjectId): Promise<void> {

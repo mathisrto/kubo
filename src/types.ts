@@ -18,11 +18,11 @@ export enum LightType {
     POINT = "point",
     DIRECTIONAL = "directional",
     SPOT = "spot",
-    AMBIENT = "ambient",
 }
 
 export enum ModelFileFormat {
     GLTF = "gltf",
+    GLB = "glb",
     OBJ = "obj",
     FBX = "fbx",
     STL = "stl",

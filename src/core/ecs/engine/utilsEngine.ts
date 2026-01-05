@@ -39,7 +39,6 @@ export function createOrResetScene(world?: World): World {
         },
         environment: {
             intensity: 1,
-            environmentMap: "",
         },
         lights: {} as Record<Entity, Light>,
         materials: {} as Record<Entity, Material>,

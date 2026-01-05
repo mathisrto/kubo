@@ -1,4 +1,4 @@
-import { defaultLocale, locales } from "@/lib/constants";
+import { defaultLocale, locales } from "@/src/types";
 import { defineRouting } from "next-intl/routing";
 
 export const routing = defineRouting({

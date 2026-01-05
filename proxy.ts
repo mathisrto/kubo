@@ -1,8 +1,7 @@
 import { routing } from "@/i18n/routing";
 import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
-import { getUidFromApiKey, hashApiKey } from "./lib/database/client";
-import { getUidFromSessionCookie } from "./lib/helpers";
+import { getUidFromSessionCookie } from "./src/helpers";
 
 export interface AuthRequest extends NextRequest {
     uid?: string;
@@ -56,8 +55,6 @@ export async function proxy(req: NextRequest) {
         return NextResponse.redirect(new URL(`/${locale}/`, req.url));
     }
 
-    const apiKey = req.headers.get("authorization")?.split("Bearer ")[1];
-
     // Fallback sur API key si pas de session valide
     if (route.startsWith("/api")) {
         const res = NextResponse.next();
@@ -65,15 +62,6 @@ export async function proxy(req: NextRequest) {
         if (uid) {
             res.headers.set("x-uid", uid);
             return res;
-        } else if (apiKey) {
-            const apiKeyUid = await getUidFromApiKey(await hashApiKey(apiKey));
-
-            if (apiKeyUid) {
-                res.headers.set("x-uid", apiKeyUid);
-                return res;
-            } else {
-                return Unauthorized();
-            }
         }
     }
 

@@ -13,7 +13,6 @@ export function SelectionObserver({
 
     useEffect(() => {
         if (!selected || selected.length === 0) {
-            console.log("Selection changed: empty");
             setSelectedObject(null);
             onSelectionChange(undefined);
             return;

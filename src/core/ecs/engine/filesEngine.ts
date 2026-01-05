@@ -13,7 +13,22 @@ export async function importModel3D(
     material?: Material
 ) {
     const buffer = Buffer.from(file);
-    const uploadedFile = await filesPort.uploadFile(buffer, "model3d");
+
+    // Déterminer l'extension selon le format
+    const extensions: Record<ModelFileFormat, string> = {
+        gltf: ".gltf",
+        glb: ".glb",
+        obj: ".obj",
+        fbx: ".fbx",
+        stl: ".stl",
+        generated: ".generated",
+    };
+
+    const uploadedFile = await filesPort.uploadFile(
+        buffer,
+        "model3d",
+        extensions[format]
+    );
 
     const modelId = createModel3D(world, {
         name: "Imported Model",
@@ -54,7 +69,8 @@ export async function importAlbedoMap(
     }
 
     const buffer = Buffer.from(file);
-    const uploadedFile = await filesPort.uploadFile(buffer, "texture");
+    // Par défaut, utiliser .jpg pour les textures d'albedo
+    const uploadedFile = await filesPort.uploadFile(buffer, "texture", ".jpg");
 
     const texture = world.textures[material.albedoMap];
     if (texture) {
@@ -63,16 +79,6 @@ export async function importAlbedoMap(
             fileId: uploadedFile.filename,
         };
     }
-}
-
-export async function importTextureEnvironment(
-    world: World,
-    file: ArrayBuffer,
-    filesPort: FilesPort
-) {
-    const buffer = Buffer.from(file);
-    const uploadedFile = await filesPort.uploadFile(buffer, "texture");
-    world.environment.environmentMap = uploadedFile.filename;
 }
 
 export async function deleteTextureEnvironment(
@@ -95,7 +101,8 @@ export async function importMaterialTexture(
     const material = getMaterialFromModel(world, modelId);
 
     const buffer = Buffer.from(file);
-    const uploadedFile = await filesPort.uploadFile(buffer, "texture");
+    // Par défaut, utiliser .jpg pour les textures de matériaux
+    const uploadedFile = await filesPort.uploadFile(buffer, "texture", ".jpg");
 
     const textureId = material[key];
     const texture = world.textures[textureId];

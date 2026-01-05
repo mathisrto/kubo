@@ -19,7 +19,7 @@ import {
 import { useTranslations } from "next-intl";
 
 export const CreateObjectsSection = () => {
-    const t = useTranslations("Dashboard");
+    const t = useTranslations("CreateObjectsSection");
     const { world } = useWorldValues();
 
     if (!world) {
@@ -30,7 +30,7 @@ export const CreateObjectsSection = () => {
         <div>
             <h2 className="flex items-center py-4 text-lg font-semibold">
                 <CircleStarIcon className="w-4 h-4 mr-2 inline-block" />
-                Création d'objets
+                {t("create_object")}
             </h2>
             <div>
                 <div className="grid grid-cols-2 gap-2 px-2">
@@ -40,7 +40,7 @@ export const CreateObjectsSection = () => {
                         onClick={() => createCube(world)}
                     >
                         <BoxIcon className="w-6 h-6 mb-1" />
-                        <span className="text-xs">{t("create_cube")}</span>
+                        <span className="text-xs">{t("cube")}</span>
                     </Button>
                     <Button
                         variant="outline"
@@ -48,7 +48,7 @@ export const CreateObjectsSection = () => {
                         onClick={() => createSphere(world)}
                     >
                         <CircleIcon className="w-6 h-6 mb-1" />
-                        <span className="text-xs">{t("create_sphere")}</span>
+                        <span className="text-xs">{t("sphere")}</span>
                     </Button>
                     <Button
                         variant="outline"
@@ -56,7 +56,7 @@ export const CreateObjectsSection = () => {
                         onClick={() => createCylinder(world)}
                     >
                         <CylinderIcon className="w-6 h-6 mb-1" />
-                        <span className="text-xs">{t("create_cylinder")}</span>
+                        <span className="text-xs">{t("cylinder")}</span>
                     </Button>
                     <Button
                         variant="outline"
@@ -64,7 +64,7 @@ export const CreateObjectsSection = () => {
                         onClick={() => createPlane(world)}
                     >
                         <SquareIcon className="w-6 h-6 mb-1" />
-                        <span className="text-xs">{t("create_plane")}</span>
+                        <span className="text-xs">{t("plane")}</span>
                     </Button>
                     <Button
                         variant="outline"
@@ -79,7 +79,7 @@ export const CreateObjectsSection = () => {
                         <span className="w-6 h-6 mb-1 flex items-center justify-center">
                             <LightbulbIcon className="w-5 h-5" />
                         </span>
-                        <span className="text-xs">Créer une lumière</span>
+                        <span className="text-xs">{t("light")}</span>
                     </Button>
                 </div>
             </div>

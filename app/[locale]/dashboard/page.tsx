@@ -7,7 +7,6 @@ import { HierarchySection } from "@/src/ui/components/HierarchySection";
 import { TextureSection } from "@/src/ui/components/TextureSection";
 import ThreeScene from "@/src/ui/components/ThreeRenderer";
 import { TransformToolsSection } from "@/src/ui/components/TransformToolsSection";
-import { useTranslations } from "next-intl";
 
 import { useWorldValues } from "@/src/contexts/worldContext";
 import { isModel3DEntity } from "@/src/core/ecs/queries/utilsQuery";
@@ -15,7 +14,6 @@ import { PropertiesSection } from "@/src/ui/components/PropertiesSection";
 import { Separator } from "@radix-ui/react-separator";
 
 const DashboardPage = () => {
-    const t = useTranslations("Dashboard");
     const { snap } = useWorldValues();
     const { selectedObject } = useTransform();
 
@@ -26,12 +24,7 @@ const DashboardPage = () => {
             {/* Container principal avec flex horizontal */}
             <div className="flex-1 flex overflow-hidden mt-16">
                 {/* Left Sidebar */}
-                <aside className="flex flex-col min-w-80">
-                    <div>
-                        <h2 className="pt-4 text-lg font-semibold text-center">
-                            Hiérarchie
-                        </h2>
-                    </div>
+                <aside className="flex flex-col min-w-72">
                     <div className="flex-1 overflow-auto p-2">
                         <HierarchySection />
                         <Separator className="my-4" />
@@ -50,12 +43,7 @@ const DashboardPage = () => {
                 </div>
 
                 {/* Right Sidebar */}
-                <aside className="flex flex-col min-w-80">
-                    <div>
-                        <h2 className="pt-4 text-lg font-semibold text-center">
-                            Outils
-                        </h2>
-                    </div>
+                <aside className="flex flex-col px-2 min-w-96">
                     <div className="flex-1 overflow-auto p-2">
                         <TransformToolsSection />
                         <Separator className="my-4" />

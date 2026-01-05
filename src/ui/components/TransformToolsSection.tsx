@@ -13,18 +13,21 @@ import {
     RotateCwIcon,
     ToolCaseIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export const TransformToolsSection = () => {
+    const t = useTranslations("TransformToolsSection");
+
     const { transformMode, setTransformMode } = useTransform();
 
     return (
         <div>
             <h2 className="flex items-center py-4 text-lg font-semibold">
                 <ToolCaseIcon className="w-4 h-4 mr-2 inline-block" />
-                Transformation
+                {t("transformation")}
             </h2>
             <div>
-                <div className="grid grid-cols-4 gap-2 px-2">
+                <div className="flex justify-center items-center gap-8">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
@@ -40,7 +43,7 @@ export const TransformToolsSection = () => {
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Sélection</p>
+                            <p>{t("select_tool")}</p>
                         </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -60,7 +63,7 @@ export const TransformToolsSection = () => {
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Translation</p>
+                            <p>{t("translate_tool")}</p>
                         </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -80,7 +83,7 @@ export const TransformToolsSection = () => {
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Rotation</p>
+                            <p>{t("rotate_tool")}</p>
                         </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -100,7 +103,7 @@ export const TransformToolsSection = () => {
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Échelle</p>
+                            <p>{t("scale_tool")}</p>
                         </TooltipContent>
                     </Tooltip>
                 </div>

@@ -9,6 +9,7 @@ export interface IFile {
     type: FileType;
     gridFsId: Types.ObjectId;
     size: number;
+    extension: string; // .hdr, .exr, .jpg, etc.
     uploadedAt: Date;
     use: number;
 }
@@ -19,6 +20,7 @@ const FileSchema = new Schema<IFile>({
     type: { type: String, enum: ["model3d", "texture"], required: true },
     gridFsId: { type: Schema.Types.ObjectId, required: true },
     size: { type: Number, required: true },
+    extension: { type: String, required: true },
     uploadedAt: { type: Date, default: Date.now },
     use: { type: Number, default: 1 },
 });
