@@ -1,5 +1,5 @@
-import { admin } from "@/lib/firebase/server";
-import { getUidFromSessionCookie } from "@/lib/helpers";
+import { admin } from "@/src/firebase/server";
+import { getUidFromSessionCookie } from "@/src/helpers";
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {

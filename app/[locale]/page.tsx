@@ -7,7 +7,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { useUser } from "@/lib/contexts/UserContext";
+import { useUser } from "@/src/contexts/userContext";
 import { motion } from "framer-motion";
 import { ArrowRight, Box, Users, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";

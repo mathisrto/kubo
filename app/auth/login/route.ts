@@ -1,4 +1,4 @@
-import { admin } from "@/lib/firebase/server";
+import { admin } from "@/src/firebase/server";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 

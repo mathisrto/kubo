@@ -1,9 +1,9 @@
 import "@/app/globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "@/lib/components/ThemeProvider";
-import { LocaleProvider } from "@/lib/contexts/LocaleContext";
-import { UserProvider } from "@/lib/contexts/UserContext";
-import ThemeScript from "@/lib/scripts/themeScript";
+import { LocaleProvider } from "@/src/contexts/localeContext";
+import { UserProvider } from "@/src/contexts/userContext";
+import ThemeScript from "@/src/scripts/themeScript";
+import { ThemeProvider } from "@/src/ui/components/ThemeProvider";
 import { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";

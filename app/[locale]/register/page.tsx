@@ -10,9 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User } from "@/lib/class/User";
-import { useUser } from "@/lib/contexts/UserContext";
-import { auth } from "@/lib/firebase/client";
+import { useUser } from "@/src/contexts/userContext";
+import { auth } from "@/src/firebase/client";
 import {
     createUserWithEmailAndPassword,
     GoogleAuthProvider,
@@ -109,7 +108,7 @@ export default function RegisterPage() {
         try {
             const provider = new GoogleAuthProvider();
             const result = await signInWithPopup(auth, provider);
-            setUser(new User(result.user));
+            setUser(result.user);
         } catch (err: any) {
             setError(err.message || t("unknown_error"));
             setIsLoading(false);

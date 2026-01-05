@@ -1,5 +1,5 @@
-import { admin } from "@/lib/firebase/server";
-import { getUidFromSessionCookie } from "@/lib/helpers";
+import { admin } from "@/src/firebase/server";
+import { getUidFromSessionCookie } from "@/src/helpers";
 import { NextRequest, NextResponse } from "next/server";
 
 // Supprime correctement le cookie de session et révoque le token Firebase

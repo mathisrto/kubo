@@ -8,7 +8,7 @@
         "start": "next start",
         "test": "next test",
         "lint": "eslint",
-        "init:db": "ts-node ./lib/scripts/initDatabase.ts"
+        "init:db": "ts-node ./src/scripts/initDatabase.ts"
     },
     "type": "module",
     "dependencies": {
@@ -46,10 +46,14 @@
         "graphql-type-json": "^0.3.2",
         "graphql-ws": "^6.0.6",
         "http": "^0.0.1-security",
+        "immer": "^11.1.0",
         "js-cookie": "^3.0.5",
+        "lodash": "^4.17.21",
+        "lodash.clonedeep": "^4.5.0",
         "lru-cache": "^11.2.2",
         "lucide-react": "^0.552.0",
         "mongodb": "^6.20.0",
+        "mongoose": "^9.0.2",
         "next": "16.0.1",
         "next-themes": "^0.4.6",
         "postprocessing": "^6.38.0",
@@ -61,6 +65,7 @@
         "three-stdlib": "^2.36.1",
         "three-viewport-gizmo": "^2.2.0",
         "ts-node": "^10.9.2",
+        "valtio": "^2.2.0",
         "ws": "^8.18.3"
     },
     "devDependencies": {

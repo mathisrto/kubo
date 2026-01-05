@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUser } from "@/lib/contexts/UserContext";
-import { auth } from "@/lib/firebase/client";
+import { useUser } from "@/src/contexts/userContext";
+import { auth } from "@/src/firebase/client";
 import {
     GoogleAuthProvider,
     signInWithEmailAndPassword,
