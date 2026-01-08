@@ -19,24 +19,33 @@ interface Props {
 export const WorldProvider = ({ children }: Props) => {
     const { user } = useUser();
     const [world, setWorld] = useState<World | null>(null);
+    const [hasError, setHasError] = useState(false);
 
     useEffect(() => {
         if (!user) return;
 
         const init = async () => {
-            const loadedWorld = await initWorldAction(user.uid);
-            const reactiveWorld = createReactiveWorld(
-                user.uid,
-                loadedWorld,
-                savePatches
-            );
-            setWorld(reactiveWorld);
+            try {
+                const loadedWorld = await initWorldAction(user.uid);
+                const reactiveWorld = createReactiveWorld(
+                    user.uid,
+                    loadedWorld,
+                    savePatches
+                );
+                setWorld(reactiveWorld);
+            } catch (error) {
+                console.error(
+                    "Error initializing world in WorldProvider:",
+                    error
+                );
+                setHasError(true);
+            }
         };
 
         init();
     }, [user?.uid]);
 
-    if (!world) return null;
+    if (!world) return <LoadingWorld hasError={hasError} />;
 
     return (
         <WorldContext.Provider value={world}>{children}</WorldContext.Provider>
@@ -52,6 +61,7 @@ const useWorld = (): World => {
 };
 
 import { useSnapshot } from "valtio";
+import LoadingWorld from "../ui/components/LoadingWorld";
 
 const useWorldSnapshot = () => {
     const world = useWorld();

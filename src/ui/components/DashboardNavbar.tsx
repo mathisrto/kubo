@@ -68,8 +68,13 @@ export const DashboardNavbar = () => {
     };
 
     const handleSave = () => {
-        saveWorldAction(user!.uid, world);
-        toast.success(t("scene_saved_success"));
+        try {
+            saveWorldAction(user!.uid, world);
+            toast.success(t("scene_saved_success"));
+        } catch (error) {
+            toast.error(t("scene_saved_error"));
+            console.error("Error saving world:", error);
+        }
     };
 
     const handleLogout = async () => {
@@ -113,12 +118,17 @@ export const DashboardNavbar = () => {
             return;
         }
 
-        const result = await importFileAction(formData);
+        try {
+            const result = await importFileAction(formData);
 
-        // 🔁 sync ECS client
-        updateEnvironmentMap(world, result.gridFsId);
+            // 🔁 sync ECS client
+            updateEnvironmentMap(world, result.gridFsId);
 
-        toast.success(t("environment_image_updated"));
+            toast.success(t("environment_image_updated"));
+        } catch (error) {
+            toast.error(t("environment_image_update_error"));
+            console.error("Error updating environment map:", error);
+        }
     };
 
     return (
