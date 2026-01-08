@@ -1,6 +1,6 @@
+import { exportFile } from "@/src/core/ecs/engine/filesEngine";
 import { getFilesPort } from "@/src/providers/filesPortProvider";
 import { NextRequest, NextResponse } from "next/server";
-import { Readable } from "stream";
 
 export async function GET(
     request: NextRequest,
@@ -25,16 +25,7 @@ export async function GET(
 
         const filesPort = await getFilesPort();
 
-        // Récupérer les infos du fichier pour avoir l'extension
-        const fileInfo = await filesPort.getFileInfo(fileId);
-        const fileStream = await filesPort.downloadFile(fileId);
-
-        // Convertir le stream en buffer pour NextResponse
-        const chunks: Buffer[] = [];
-        for await (const chunk of fileStream as Readable) {
-            chunks.push(chunk);
-        }
-        const buffer = Buffer.concat(chunks);
+        const { buffer, extension } = await exportFile(fileId, filesPort);
 
         // Déterminer le type MIME selon l'extension
         const mimeTypes: Record<string, string> = {
@@ -45,8 +36,7 @@ export async function GET(
             ".png": "image/png",
         };
 
-        const contentType =
-            mimeTypes[fileInfo.extension] || "application/octet-stream";
+        const contentType = mimeTypes[extension] || "application/octet-stream";
 
         return new NextResponse(buffer, {
             status: 200,

@@ -1,23 +1,12 @@
 "use server";
 
-import { load, saveWorld } from "@/src/core/ecs/engine/sceneEngine";
-import { createOrResetScene } from "@/src/core/ecs/engine/utilsEngine";
-import { getFilesPort } from "@/src/providers/filesPortProvider";
+import { initWorld, saveWorld } from "@/src/core/ecs/engine/sceneEngine";
 import { getScenePort } from "@/src/providers/scenePortProvider";
-import { Readable } from "stream";
 import { World } from "../core/ecs/world";
 
-export async function initWorld(userId: string) {
+export async function initWorldAction(userId: string) {
     const scenePort = await getScenePort();
-
-    let world = await load(userId, scenePort);
-
-    if (!world) {
-        world = createOrResetScene();
-        await saveWorld(userId, world, scenePort);
-    }
-
-    return world;
+    return initWorld(userId, scenePort);
 }
 
 export async function saveWorldAction(userId: string, world: World) {

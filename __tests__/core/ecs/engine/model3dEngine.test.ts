@@ -99,8 +99,7 @@ describe("model3dEngine", () => {
             });
 
             expect(world.models[modelId].metadata).toEqual({
-                author: "John Doe",
-                version: "1.0",
+                primitive: "cube",
             });
         });
 

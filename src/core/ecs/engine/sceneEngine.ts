@@ -3,6 +3,7 @@ import { enablePatches, Patch, produce } from "immer";
 import { proxy, subscribe } from "valtio";
 import { SAVE_DELAY_MS } from "../../../types";
 import { ScenePort } from "../../ports/scenePort";
+import { createOrResetScene } from "./utilsEngine";
 
 enablePatches();
 
@@ -75,4 +76,18 @@ export function createReactiveWorld(
     });
 
     return worldProxy;
+}
+
+export async function initWorld(
+    userId: string,
+    scenePort: ScenePort
+): Promise<World> {
+    let world = await load(userId, scenePort);
+
+    if (!world) {
+        world = createOrResetScene();
+        await saveWorld(userId, world, scenePort);
+    }
+
+    return world;
 }

@@ -36,17 +36,22 @@ function validateColor(color: Light["color"]): void {
     const { r, g, b, a } = color;
     if (
         typeof r !== "number" ||
+        !Number.isInteger(r) ||
         typeof g !== "number" ||
+        !Number.isInteger(g) ||
         typeof b !== "number" ||
+        !Number.isInteger(b) ||
         r < 0 ||
-        r > 1 ||
+        r > 255 ||
         g < 0 ||
-        g > 1 ||
+        g > 255 ||
         b < 0 ||
-        b > 1 ||
+        b > 255 ||
         (a !== undefined && (a < 0 || a > 1))
     ) {
-        throw new Error("Les valeurs de couleur doivent être entre 0 et 1");
+        throw new Error(
+            "Les valeurs r, g, b doivent être des entiers entre 0 et 255, et l'alpha entre 0 et 1"
+        );
     }
 }
 
@@ -140,7 +145,7 @@ export function createLight(
 
     const id = generateEntityId();
     world.lights[id] = {
-        color: input.color || { r: 1, g: 1, b: 1 },
+        color: input.color || { r: 255, g: 255, b: 255, a: 1 },
         intensity: input.intensity || 1,
         range: input.range || 10,
         type: input.type || LightType.POINT,
@@ -219,7 +224,7 @@ export function updateLightRange(
     range: Light["range"]
 ): void {
     assertLight(world, id);
-    
+
     if (range !== undefined) {
         validateRange(range);
     }

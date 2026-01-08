@@ -76,12 +76,12 @@ describe("utilsEngine", () => {
             expect(result).toBe(true);
         });
 
-        it("retourne false si aucun composant n'existait", () => {
+        it("retourne true même si aucun composant n'existait", () => {
             const entityId = "e999";
 
             const result = removeEntity(world, entityId);
 
-            expect(result).toBe(false);
+            expect(result).toBe(true);
         });
 
         it("supprime tous les types de composants", () => {

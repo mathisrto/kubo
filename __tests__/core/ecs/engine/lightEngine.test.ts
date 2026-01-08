@@ -22,7 +22,7 @@ describe("lightEngine", () => {
 
             expect(lightId).toBeDefined();
             expect(world.lights[lightId]).toEqual({
-                color: { r: 1, g: 1, b: 1 },
+                color: { r: 255, g: 255, b: 255, a: 1 },
                 intensity: 1,
                 range: 10,
                 type: LightType.POINT,
@@ -33,14 +33,14 @@ describe("lightEngine", () => {
         it("crée une lumière avec des paramètres personnalisés", () => {
             const lightId = createLight(world, {
                 name: "Custom Light",
-                color: { r: 1, g: 0.5, b: 0 },
+                color: { r: 255, g: 128, b: 0 },
                 intensity: 2.5,
                 range: 20,
                 type: LightType.DIRECTIONAL,
             });
 
             expect(world.lights[lightId]).toEqual({
-                color: { r: 1, g: 0.5, b: 0 },
+                color: { r: 255, g: 128, b: 0 },
                 intensity: 2.5,
                 range: 20,
                 type: LightType.DIRECTIONAL,
@@ -104,16 +104,20 @@ describe("lightEngine", () => {
             expect(() =>
                 createLight(world, {
                     name: "Light",
-                    color: { r: 2, g: 0.5, b: 0.5 },
+                    color: { r: 256, g: 128, b: 128 },
                 })
-            ).toThrow("Les valeurs de couleur doivent être entre 0 et 1");
+            ).toThrow(
+                "Les valeurs r, g, b doivent être des entiers entre 0 et 255, et l'alpha entre 0 et 1"
+            );
 
             expect(() =>
                 createLight(world, {
                     name: "Light",
-                    color: { r: -0.1, g: 0.5, b: 0.5 },
+                    color: { r: -1, g: 128, b: 128 },
                 })
-            ).toThrow("Les valeurs de couleur doivent être entre 0 et 1");
+            ).toThrow(
+                "Les valeurs r, g, b doivent être des entiers entre 0 et 255, et l'alpha entre 0 et 1"
+            );
         });
 
         it("lance une erreur si le type de lumière est invalide", () => {
@@ -163,44 +167,54 @@ describe("lightEngine", () => {
 
         it("accepte des couleurs avec alpha", () => {
             updateLightColor(world, lightId, {
-                r: 0.5,
-                g: 0.5,
-                b: 0.5,
+                r: 128,
+                g: 128,
+                b: 128,
                 a: 0.8,
             });
 
             expect(world.lights[lightId].color).toEqual({
-                r: 0.5,
-                g: 0.5,
-                b: 0.5,
+                r: 128,
+                g: 128,
+                b: 128,
                 a: 0.8,
             });
         });
 
         it("lance une erreur si les valeurs sont hors limites", () => {
             expect(() =>
-                updateLightColor(world, lightId, { r: 2, g: 0, b: 0 })
-            ).toThrow("Les valeurs de couleur doivent être entre 0 et 1");
+                updateLightColor(world, lightId, { r: 256, g: 0, b: 0 })
+            ).toThrow(
+                "Les valeurs r, g, b doivent être des entiers entre 0 et 255, et l'alpha entre 0 et 1"
+            );
 
             expect(() =>
-                updateLightColor(world, lightId, { r: 0, g: -0.5, b: 0 })
-            ).toThrow("Les valeurs de couleur doivent être entre 0 et 1");
+                updateLightColor(world, lightId, { r: 0, g: -10, b: 0 })
+            ).toThrow(
+                "Les valeurs r, g, b doivent être des entiers entre 0 et 255, et l'alpha entre 0 et 1"
+            );
         });
 
         it("lance une erreur si alpha est hors limites", () => {
             expect(() =>
                 updateLightColor(world, lightId, {
-                    r: 1,
-                    g: 1,
-                    b: 1,
+                    r: 255,
+                    g: 255,
+                    b: 255,
                     a: 1.5,
                 })
-            ).toThrow("Les valeurs de couleur doivent être entre 0 et 1");
+            ).toThrow(
+                "Les valeurs r, g, b doivent être des entiers entre 0 et 255, et l'alpha entre 0 et 1"
+            );
         });
 
         it("lance une erreur si la lumière n'existe pas", () => {
             expect(() =>
-                updateLightColor(world, "non-existent", { r: 1, g: 1, b: 1 })
+                updateLightColor(world, "non-existent", {
+                    r: 255,
+                    g: 255,
+                    b: 255,
+                })
             ).toThrow("La lumière avec l'ID \"non-existent\" n'existe pas");
         });
     });

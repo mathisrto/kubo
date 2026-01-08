@@ -1,4 +1,4 @@
-import { initWorld, savePatches } from "@/src/actions/sceneActions";
+import { initWorldAction, savePatches } from "@/src/actions/sceneActions";
 import { useUser } from "@/src/contexts/userContext";
 import { createReactiveWorld } from "@/src/core/ecs/engine/sceneEngine";
 import { World } from "@/src/core/ecs/world";
@@ -24,7 +24,7 @@ export const WorldProvider = ({ children }: Props) => {
         if (!user) return;
 
         const init = async () => {
-            const loadedWorld = await initWorld(user.uid);
+            const loadedWorld = await initWorldAction(user.uid);
             const reactiveWorld = createReactiveWorld(
                 user.uid,
                 loadedWorld,
