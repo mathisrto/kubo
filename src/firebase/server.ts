@@ -1,17 +1,28 @@
 import admin from "firebase-admin";
 
-import serviceAccount from "../../data/firebase/serviceAccountKey.json";
+// Configuration Firebase Admin SDK via variables d'environnement
+const firebaseAdminConfig = {
+    projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+};
 
-if (!serviceAccount) {
+// Vérification des variables d'environnement
+if (
+    !firebaseAdminConfig.projectId ||
+    !firebaseAdminConfig.clientEmail ||
+    !firebaseAdminConfig.privateKey
+) {
     throw new Error(
-        "Firebase service account key file not found. Please ensure the path is correct."
+        "Firebase Admin SDK credentials are missing. Please set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, and FIREBASE_ADMIN_PRIVATE_KEY environment variables."
     );
 }
 
+// Initialisation de Firebase Admin SDK
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert(
-            serviceAccount as admin.ServiceAccount
+            firebaseAdminConfig as admin.ServiceAccount
         ),
     });
 }

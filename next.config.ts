@@ -3,6 +3,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
     reactStrictMode: true,
+    output: "standalone", // Pour le déploiement Docker optimisé
     images: {
         remotePatterns: [
             {

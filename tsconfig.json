@@ -33,5 +33,13 @@
         "data/init-mongo.js",
         ".next/dev/types/**/*.ts"
     ],
-    "exclude": ["node_modules"]
+    "exclude": [
+        "node_modules",
+        "deprecated",
+        "data/db",
+        "data/firebase",
+        ".next",
+        "out",
+        "build"
+    ]
 }
