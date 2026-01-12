@@ -3,71 +3,71 @@ import { useUser } from "@/src/contexts/userContext";
 import { createReactiveWorld } from "@/src/core/ecs/engine/sceneEngine";
 import { World } from "@/src/core/ecs/world";
 import {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
+    createContext,
+    ReactNode,
+    useContext,
+    useEffect,
+    useState,
 } from "react";
 
 export const WorldContext = createContext<World | null>(null);
 
 interface Props {
-  children: ReactNode;
+    children: ReactNode;
 }
 
 export const WorldProvider = ({ children }: Props) => {
-  const { user } = useUser();
-  const [world, setWorld] = useState<World | null>(null);
-  const [hasError, setHasError] = useState(false);
+    const { user } = useUser();
+    const [world, setWorld] = useState<World | null>(null);
+    const [hasError, setHasError] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
+    useEffect(() => {
+        if (!user) return;
 
-    const init = async () => {
-      try {
-        const loadedWorld = await initWorldAction(user.uid);
-        const reactiveWorld = createReactiveWorld(
-          user.uid,
-          loadedWorld,
-          savePatches
-        );
-        setWorld(reactiveWorld);
-      } catch (error) {
-        logger.error("Error initializing world in WorldProvider:", error);
-        setHasError(true);
-      }
-    };
+        const init = async () => {
+            try {
+                const loadedWorld = await initWorldAction(user.uid);
+                const reactiveWorld = createReactiveWorld(
+                    user.uid,
+                    loadedWorld,
+                    savePatches
+                );
+                setWorld(reactiveWorld);
+            } catch (error) {
+                setHasError(true);
+                toast.error("Erreur lors du chargement du monde.");
+            }
+        };
 
-    init();
-  }, [user]);
+        init();
+    }, [user]);
 
-  if (!world) return <LoadingWorld hasError={hasError} />;
+    if (!world) return <LoadingWorld hasError={hasError} />;
 
-  return (
-    <WorldContext.Provider value={world}>{children}</WorldContext.Provider>
-  );
+    return (
+        <WorldContext.Provider value={world}>{children}</WorldContext.Provider>
+    );
 };
 
 const useWorld = (): World => {
-  const world = useContext(WorldContext);
-  if (!world) {
-    throw new Error("useWorld must be used within WorldProvider");
-  }
-  return world;
+    const world = useContext(WorldContext);
+    if (!world) {
+        throw new Error("useWorld must be used within WorldProvider");
+    }
+    return world;
 };
 
+import { toast } from "sonner";
 import { useSnapshot } from "valtio";
 import LoadingWorld from "../ui/components/LoadingWorld";
-import logger from "../logger";
 
 const useWorldSnapshot = () => {
-  const world = useWorld();
-  return useSnapshot(world);
+    const world = useWorld();
+    return useSnapshot(world);
 };
 
 export const useWorldValues = () => {
-  const world = useWorld();
-  const snap = useWorldSnapshot();
-  return { world, snap };
+    const world = useWorld();
+    const snap = useWorldSnapshot();
+    return { world, snap };
 };

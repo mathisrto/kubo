@@ -1,10 +1,10 @@
 import { World } from "@/src/core/ecs/world";
 import { enablePatches, Patch, produce } from "immer";
+import { toast } from "sonner";
 import { proxy, subscribe } from "valtio";
 import { SAVE_DELAY_MS } from "../../../types";
 import { ScenePort } from "../../ports/scenePort";
 import { createOrResetScene } from "./utilsEngine";
-import logger from "@/src/logger";
 
 enablePatches();
 
@@ -68,10 +68,10 @@ export function createReactiveWorld(
                     const update = patchesToMongoSet(patches);
                     await savePatches(userId, update);
                     previousWorld = JSON.parse(JSON.stringify(worldProxy));
-                    logger.info("🌱 Patches saved:", update);
+                    toast.success("✔️ Monde sauvegardé.");
                 }
             } catch (err) {
-                logger.error("❌ Failed to save world patches:", err);
+                toast.error("❌ Erreur lors de la sauvegarde du monde.");
             }
         }, SAVE_DELAY_MS);
     });
