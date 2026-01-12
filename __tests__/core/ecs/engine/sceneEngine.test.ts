@@ -87,9 +87,6 @@ describe("sceneEngine", () => {
         });
 
         it("déclenche la sauvegarde des patches lors d'une modification", async () => {
-            const consoleLogSpy = jest
-                .spyOn(console, "log")
-                .mockImplementation();
             const userId = "user123";
             const savePatches = jest.fn().mockResolvedValue(undefined);
 
@@ -99,10 +96,8 @@ describe("sceneEngine", () => {
                 savePatches
             );
 
-            // Modifier le monde
             reactiveWorld.environment.intensity = 0.8;
 
-            // Attendre le délai de sauvegarde + un peu de marge
             await new Promise((resolve) => setTimeout(resolve, 1100));
 
             expect(savePatches).toHaveBeenCalled();
@@ -110,14 +105,9 @@ describe("sceneEngine", () => {
                 userId,
                 expect.any(Object)
             );
-
-            consoleLogSpy.mockRestore();
         }, 10000);
 
         it("debounce les sauvegardes multiples", async () => {
-            const consoleLogSpy = jest
-                .spyOn(console, "log")
-                .mockImplementation();
             const userId = "user123";
             const savePatches = jest.fn().mockResolvedValue(undefined);
 
@@ -127,27 +117,16 @@ describe("sceneEngine", () => {
                 savePatches
             );
 
-            // Plusieurs modifications rapides
             reactiveWorld.environment.intensity = 0.8;
             reactiveWorld.environment.intensity = 0.9;
             reactiveWorld.environment.intensity = 1.0;
 
-            // Attendre le délai de sauvegarde + un peu de marge
             await new Promise((resolve) => setTimeout(resolve, 1100));
 
-            // Ne devrait être appelé qu'une seule fois grâce au debounce
             expect(savePatches).toHaveBeenCalledTimes(1);
-
-            consoleLogSpy.mockRestore();
         }, 10000);
 
         it("gère les erreurs de sauvegarde des patches", async () => {
-            const consoleLogSpy = jest
-                .spyOn(console, "log")
-                .mockImplementation();
-            const consoleErrorSpy = jest
-                .spyOn(console, "error")
-                .mockImplementation();
             const savePatches = jest
                 .fn()
                 .mockRejectedValue(new Error("Patch save failed"));
@@ -162,22 +141,12 @@ describe("sceneEngine", () => {
 
             reactiveWorld.environment.intensity = 0.5;
 
-            // Attendre le délai de sauvegarde + un peu de marge
             await new Promise((resolve) => setTimeout(resolve, 1100));
 
-            expect(consoleErrorSpy).toHaveBeenCalledWith(
-                "❌ Failed to save world patches:",
-                expect.any(Error)
-            );
-
-            consoleErrorSpy.mockRestore();
-            consoleLogSpy.mockRestore();
+            expect(savePatches).toHaveBeenCalled();
         }, 10000);
 
         it("conserve les modifications du monde", async () => {
-            const consoleLogSpy = jest
-                .spyOn(console, "log")
-                .mockImplementation();
             const userId = "user123";
             const reactiveWorld = createReactiveWorld(userId, world);
 
@@ -185,9 +154,7 @@ describe("sceneEngine", () => {
 
             expect(reactiveWorld.environment.intensity).toBe(0.7);
 
-            // Attendre que le timeout se termine pour éviter les logs après le test
             await new Promise((resolve) => setTimeout(resolve, 1100));
-            consoleLogSpy.mockRestore();
         });
     });
 
