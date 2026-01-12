@@ -57,13 +57,8 @@ function SceneContent() {
   const [isTransforming, setIsTransforming] = useState(false);
   const [meshes, setMeshes] = useState<Record<string, THREE.Mesh>>({});
 
-  const [, setSelected] = useSelect();
-
-  // Dériver selectedMesh directement sans effet
-  const selectedMesh =
-    selectedObject && meshes[selectedObject]
-      ? meshes[selectedObject]
-      : undefined;
+  // Derive selectedMesh from selectedObject and meshes instead of using state
+  const selectedMesh = selectedObject ? meshes[selectedObject] : undefined;
 
   const environmentUrl = (() => {
     const gridFsId = getEnvironmentMap(snap);
@@ -82,10 +77,6 @@ function SceneContent() {
     }));
   }, []);
 
-  const handleSelectionChange = useCallback((mesh: THREE.Mesh | undefined) => {
-    setSelectedMesh(mesh);
-  }, []);
-
   return (
     <>
       <Environment
@@ -95,7 +86,7 @@ function SceneContent() {
         environmentIntensity={getEnvironmentIntensity(snap)}
       />
       <Select>
-        <SelectionObserver onSelectionChange={handleSelectionChange} />
+        <SelectionObserver />
         {/* Modèles 3D */}
         {getModels3D(snap).map((modelId) => (
           <Model3D

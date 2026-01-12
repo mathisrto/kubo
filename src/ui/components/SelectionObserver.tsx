@@ -3,18 +3,13 @@ import { useSelect } from "@react-three/drei";
 import { useEffect } from "react";
 import * as THREE from "three";
 
-export function SelectionObserver({
-  onSelectionChange,
-}: {
-  onSelectionChange: (mesh: THREE.Mesh | undefined) => void;
-}) {
+export function SelectionObserver() {
   const selected = useSelect();
   const { setSelectedObject } = useTransform();
 
   useEffect(() => {
     if (!selected || selected.length === 0) {
       setSelectedObject(null);
-      onSelectionChange(undefined);
       return;
     }
 
@@ -24,8 +19,7 @@ export function SelectionObserver({
     })[0];
     const id = validMesh?.userData.id || null;
     setSelectedObject(id);
-    onSelectionChange(validMesh);
-  }, [selected, onSelectionChange, setSelectedObject]);
+  }, [selected, setSelectedObject]);
 
   return null;
 }
