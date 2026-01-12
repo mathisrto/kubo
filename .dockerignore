@@ -56,10 +56,7 @@ CHANGELOG.md
 LICENSE
 
 # Data
-data/
-
-# Deprecated
-deprecated/
+data/db
 
 # CI/CD
 .github/

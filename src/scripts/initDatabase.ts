@@ -10,6 +10,7 @@ const NODE_ENV_VALUES: Exclude<NodeEnv, undefined>[] = [
 
 import dotenv from "dotenv";
 import path from "path";
+import logger from "../logger";
 
 dotenv.config();
 dotenv.config({
@@ -43,7 +44,7 @@ async function initDatabase() {
             );
         }
 
-        console.log(
+        logger.info(
             `🔧 Initialisation de la base de données pour l'environnement ${env}`
         );
 
@@ -57,7 +58,7 @@ async function initDatabase() {
         try {
             // Connexion à MongoDB
             await client.connect();
-            console.log("✅ Connexion à MongoDB réussie");
+            logger.info("✅ Connexion à MongoDB réussie");
 
             const adminDb = client.db("admin");
 
@@ -68,9 +69,9 @@ async function initDatabase() {
                     pwd: password,
                     roles: [{ role: "readWrite", db: dbName }],
                 });
-                console.log(`✅ Utilisateur '${user}' créé`);
+                logger.info(`✅ Utilisateur '${user}' créé`);
             } catch {
-                console.log(`ℹ️ Utilisateur '${user}' existe déjà`);
+                logger.info(`ℹ️ Utilisateur '${user}' existe déjà`);
             }
 
             // Création de la collection 'scenes'
@@ -78,20 +79,20 @@ async function initDatabase() {
             const collections = await appDb.listCollections().toArray();
             if (!collections.find((c) => c.name === "scenes")) {
                 await appDb.createCollection("scenes");
-                console.log("✅ Collection 'scenes' créée");
+                logger.info("✅ Collection 'scenes' créée");
             } else {
-                console.log("ℹ️ Collection 'scenes' existe déjà");
+                logger.info("ℹ️ Collection 'scenes' existe déjà");
             }
 
             // Création de la collection 'files'
             if (!collections.find((c) => c.name === "files")) {
                 await appDb.createCollection("files");
-                console.log("✅ Collection 'files' créée");
+                logger.info("✅ Collection 'files' créée");
             } else {
-                console.log("ℹ️ Collection 'files' existe déjà");
+                logger.info("ℹ️ Collection 'files' existe déjà");
             }
 
-            console.log(`✅ Base '${dbName}' prête à l'emploi`);
+            logger.info(`✅ Base '${dbName}' prête à l'emploi`);
         } catch {
             throw new Error("❌ Impossible de se connecter à MongoDB");
         } finally {
@@ -100,4 +101,4 @@ async function initDatabase() {
     }
 }
 
-initDatabase().catch(console.error);
+initDatabase().catch(logger.error);

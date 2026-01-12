@@ -3,13 +3,14 @@
 import { initWorld, saveWorld } from "@/src/core/ecs/engine/sceneEngine";
 import { getScenePort } from "@/src/providers/scenePortProvider";
 import { World } from "../core/ecs/world";
+import logger from "../logger";
 
 export async function initWorldAction(userId: string) {
     try {
         const scenePort = await getScenePort();
         return await initWorld(userId, scenePort);
     } catch (error) {
-        console.error("Error initializing world:", error);
+        logger.error("Error initializing world:", error);
         throw error;
     }
 }
@@ -19,7 +20,7 @@ export async function saveWorldAction(userId: string, world: World) {
         const scenePort = await getScenePort();
         await saveWorld(userId, world, scenePort);
     } catch (error) {
-        console.error("Error saving world:", error);
+        logger.error("Error saving world:", error);
         throw error;
     }
 }
@@ -32,7 +33,7 @@ export async function savePatches(
         const scenePort = await getScenePort();
         await scenePort.savePatches(userId, update);
     } catch (error) {
-        console.error("Error saving patches:", error);
+        logger.error("Error saving patches:", error);
         throw error;
     }
 }

@@ -1,4 +1,5 @@
 import { admin } from "@/src/firebase/server";
+import logger from "@/src/logger";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
 
         return res;
     } catch (e) {
-        console.error("Error during login:", e);
+        logger.error("Error during login:", e);
         return NextResponse.json(
             { ok: false, error: "requête JSON invalide" },
             { status: 400 }
