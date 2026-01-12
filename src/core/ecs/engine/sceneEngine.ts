@@ -4,6 +4,7 @@ import { proxy, subscribe } from "valtio";
 import { SAVE_DELAY_MS } from "../../../types";
 import { ScenePort } from "../../ports/scenePort";
 import { createOrResetScene } from "./utilsEngine";
+import logger from "@/src/logger";
 
 enablePatches();
 
@@ -67,10 +68,10 @@ export function createReactiveWorld(
                     const update = patchesToMongoSet(patches);
                     await savePatches(userId, update);
                     previousWorld = JSON.parse(JSON.stringify(worldProxy));
-                    console.log("🌱 Patches saved:", update);
+                    logger.info("🌱 Patches saved:", update);
                 }
             } catch (err) {
-                console.error("❌ Failed to save world patches:", err);
+                logger.error("❌ Failed to save world patches:", err);
             }
         }, SAVE_DELAY_MS);
     });

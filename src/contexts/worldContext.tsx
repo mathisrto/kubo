@@ -34,7 +34,7 @@ export const WorldProvider = ({ children }: Props) => {
         );
         setWorld(reactiveWorld);
       } catch (error) {
-        console.error("Error initializing world in WorldProvider:", error);
+        logger.error("Error initializing world in WorldProvider:", error);
         setHasError(true);
       }
     };
@@ -59,6 +59,7 @@ const useWorld = (): World => {
 
 import { useSnapshot } from "valtio";
 import LoadingWorld from "../ui/components/LoadingWorld";
+import logger from "../logger";
 
 const useWorldSnapshot = () => {
   const world = useWorld();

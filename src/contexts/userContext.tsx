@@ -10,6 +10,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import logger from "../logger";
 
 type UserContextType = {
   user: User | null;
@@ -88,7 +89,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           setUser(userCredential.user);
         }
       } catch (error) {
-        console.error("Erreur lors du rafraîchissement de la session :", error);
+        logger.error("Erreur lors du rafraîchissement de la session :", error);
       }
     });
   }, []);

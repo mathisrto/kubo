@@ -1,4 +1,5 @@
 import { exportFile } from "@/src/core/ecs/engine/filesEngine";
+import logger from "@/src/logger";
 import { getFilesPort } from "@/src/providers/filesPortProvider";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -46,7 +47,7 @@ export async function GET(
             },
         });
     } catch (error) {
-        console.error("Error downloading file:", error);
+        logger.error("Error downloading file:", error);
         return NextResponse.json(
             { error: "Failed to download file" },
             { status: 500 }

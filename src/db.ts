@@ -1,5 +1,6 @@
 // mongooseClient.ts
 import mongoose from "mongoose";
+import logger from "./logger";
 
 let isConnected = false;
 
@@ -12,14 +13,14 @@ export async function getMongooseClient(): Promise<typeof mongoose | null> {
     const uri = process.env.DATABASE_URI;
 
     if (!dbName || !user || !password || !uri) {
-        console.error("❌ Variables d'environnement Mongo manquantes");
+        logger.error("❌ Variables d'environnement Mongo manquantes");
         return null;
     }
 
     try {
         const fullUri = `mongodb://${user}:${password}@${uri}/${dbName}?authSource=admin`;
-        console.log("🔌 Connexion à MongoDB avec Mongoose...");
-        console.log(`URI: ${fullUri}`);
+        logger.info("🔌 Connexion à MongoDB avec Mongoose...");
+        logger.info(`URI: ${fullUri}`);
 
         await mongoose.connect(fullUri, {
             autoIndex: true,
@@ -29,10 +30,10 @@ export async function getMongooseClient(): Promise<typeof mongoose | null> {
         });
 
         isConnected = true;
-        console.log("✅ Mongoose connecté (singleton)");
+        logger.info("✅ Mongoose connecté (singleton)");
         return mongoose;
     } catch (error) {
-        console.error("❌ Erreur lors de la connexion Mongoose :", error);
+        logger.error("❌ Erreur lors de la connexion Mongoose :", error);
         return null;
     }
 }

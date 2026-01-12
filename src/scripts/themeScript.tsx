@@ -2,7 +2,7 @@
 "use client";
 
 export default function ThemeScript() {
-    const code = `
+  const code = `
     (function() {
       try {
         let theme = localStorage.getItem("theme") || "system";
@@ -14,12 +14,11 @@ export default function ThemeScript() {
         document.documentElement.classList.remove("light", "dark");
         document.documentElement.classList.add(theme);
       } catch(e) {
-        console.error("ThemeScript error:", e);
         document.documentElement.classList.remove('light', 'dark');
         document.documentElement.classList.add('light');
       }
     })();
   `;
 
-    return <script dangerouslySetInnerHTML={{ __html: code }} />;
+  return <script dangerouslySetInnerHTML={{ __html: code }} />;
 }
