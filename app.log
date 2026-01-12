@@ -1,3 +1,0 @@
-{"level":"info","message":"🔌 Connexion à MongoDB avec Mongoose...","timestamp":"2026-01-12T14:33:39.765Z"}
-{"level":"info","message":"URI: mongodb://dev_user:password123@localhost:3001/kubo_dev?authSource=admin","timestamp":"2026-01-12T14:33:39.766Z"}
-{"level":"info","message":"✅ Mongoose connecté (singleton)","timestamp":"2026-01-12T14:33:39.827Z"}

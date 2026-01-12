@@ -68,7 +68,6 @@ export function createReactiveWorld(
                     const update = patchesToMongoSet(patches);
                     await savePatches(userId, update);
                     previousWorld = JSON.parse(JSON.stringify(worldProxy));
-                    toast.success("✔️ Monde sauvegardé.");
                 }
             } catch (err) {
                 toast.error("❌ Erreur lors de la sauvegarde du monde.");
