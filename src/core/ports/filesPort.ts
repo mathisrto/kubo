@@ -6,10 +6,14 @@ export interface FilesPort {
     uploadFile(
         buffer: Buffer,
         type: FileType,
-        extension: string
+        extension: string,
+        userId: string,
     ): Promise<IFile>;
-    downloadFile(gridFsId: string | ObjectId): Promise<Readable>;
-    downloadFileByName(filename: string): Promise<Readable>;
-    getFileInfo(gridFsId: string | ObjectId): Promise<IFile>;
-    deleteFile(gridFsId: string | ObjectId): Promise<void>;
+    downloadFile(
+        gridFsId: string | ObjectId,
+        userId: string,
+    ): Promise<Readable>;
+    downloadFileByName(filename: string, userId: string): Promise<Readable>;
+    getFileInfo(gridFsId: string | ObjectId, userId: string): Promise<IFile>;
+    deleteFile(gridFsId: string | ObjectId, userId: string): Promise<void>;
 }

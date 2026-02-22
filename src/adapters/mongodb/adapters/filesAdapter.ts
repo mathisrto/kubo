@@ -31,17 +31,18 @@ export class FilesAdapter implements FilesPort {
     public async uploadFile(
         buffer: Buffer,
         type: FileType,
-        extension: string
+        extension: string,
+        userId: string,
     ): Promise<IFile> {
         const hash = crypto.createHash("sha256").update(buffer).digest("hex");
 
-        // Vérifier si le fichier existe déjà
-        const existing = await FileModel.findOne({ hash });
+        // Vérifier si le fichier existe déjà pour cet utilisateur
+        const existing = await FileModel.findOne({ hash, userId });
         if (existing) {
             existing.use += 1;
             await FileModel.updateOne(
                 { _id: existing._id },
-                { $inc: { use: 1 } }
+                { $inc: { use: 1 } },
             );
             return existing; // on réutilise le même fichier
         }
@@ -56,6 +57,7 @@ export class FilesAdapter implements FilesPort {
                 const fileDoc = await FileModel.create({
                     filename: `${type}_${hash}`,
                     hash,
+                    userId,
                     type,
                     gridFsId: uploadStream.id,
                     size: buffer.length,
@@ -70,13 +72,27 @@ export class FilesAdapter implements FilesPort {
         });
     }
 
-    public async downloadFile(gridFsId: File): Promise<Readable> {
+    public async downloadFile(
+        gridFsId: File,
+        userId: string,
+    ): Promise<Readable> {
+        // Vérifier que le fichier appartient à l'utilisateur
+        const fileRecord = await FileModel.findOne({
+            gridFsId: new mongo.ObjectId(gridFsId),
+            userId,
+        });
+        if (!fileRecord) {
+            throw new Error("File not found or access denied");
+        }
         const bucket = await this.getBucket();
         return bucket.openDownloadStream(new mongo.ObjectId(gridFsId));
     }
 
-    public async downloadFileByName(filename: string): Promise<Readable> {
-        const fileRecord = await FileModel.findOne({ filename });
+    public async downloadFileByName(
+        filename: string,
+        userId: string,
+    ): Promise<Readable> {
+        const fileRecord = await FileModel.findOne({ filename, userId });
         if (!fileRecord) {
             throw new Error(`File not found: ${filename}`);
         }
@@ -85,10 +101,12 @@ export class FilesAdapter implements FilesPort {
     }
 
     public async getFileInfo(
-        gridFsId: string | mongo.ObjectId
+        gridFsId: string | mongo.ObjectId,
+        userId: string,
     ): Promise<IFile> {
         const fileRecord = await FileModel.findOne({
             gridFsId: new mongo.ObjectId(gridFsId),
+            userId,
         });
         if (!fileRecord) {
             throw new Error(`File not found: ${gridFsId}`);
@@ -96,18 +114,27 @@ export class FilesAdapter implements FilesPort {
         return fileRecord;
     }
 
-    public async deleteFile(gridFsId: string | mongo.ObjectId): Promise<void> {
+    public async deleteFile(
+        gridFsId: string | mongo.ObjectId,
+        userId: string,
+    ): Promise<void> {
         const bucket = await this.getBucket();
-        const fileRecord = await FileModel.findOne({ gridFsId });
+        const fileRecord = await FileModel.findOne({
+            gridFsId: new mongo.ObjectId(gridFsId),
+            userId,
+        });
         if (!fileRecord) {
-            throw new Error("File record not found");
+            throw new Error("File record not found or access denied");
         }
         if (fileRecord.use > 1) {
             // Just decrease the use count
-            await FileModel.updateOne({ gridFsId }, { $inc: { use: -1 } });
+            await FileModel.updateOne(
+                { gridFsId, userId },
+                { $inc: { use: -1 } },
+            );
             return;
         }
         await bucket.delete(new mongo.ObjectId(gridFsId));
-        await FileModel.deleteOne({ gridFsId });
+        await FileModel.deleteOne({ gridFsId, userId });
     }
 }

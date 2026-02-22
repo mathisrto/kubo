@@ -1,13 +1,198 @@
+import { useUser } from "@/src/contexts/userContext";
 import { useWorldValues } from "@/src/contexts/worldContext";
 import { Entity } from "@/src/core/ecs/components/indexComponent";
-import { getModel3DMetadata } from "@/src/core/ecs/queries/model3dQuery";
+import { setModel3DAnimations } from "@/src/core/ecs/engine/model3dEngine";
+import {
+    getModel3DFileId,
+    getModel3DFormat,
+    getModel3DMetadata,
+} from "@/src/core/ecs/queries/model3dQuery";
 import { getTransform } from "@/src/core/ecs/queries/transformQuery";
-import { useCursor } from "@react-three/drei";
-import { useEffect, useRef, useState } from "react";
+import { ModelFileFormat } from "@/src/types";
+import { useCursor, useGLTF } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
+import { Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { degToRad } from "three/src/math/MathUtils.js";
+import { subscribe } from "valtio";
 
-export function Model3D({
+/**
+ * Composant interne pour charger et afficher un modèle GLTF/GLB
+ * Gère également les animations embarquées dans le fichier GLTF.
+ *
+ * Chaque entité utilise une URL unique (via ?eid=) pour forcer
+ * useGLTF à charger une copie indépendante du modèle.
+ * Aucun clone nécessaire : chaque entité a sa propre scène,
+ * ses propres nœuds, ses propres clips d'animation.
+ */
+function GLTFModel({
+    url,
+    modelId,
+    isTransforming,
+    onMeshCreated,
+}: {
+    url: string;
+    modelId: Entity;
+    isTransforming?: boolean;
+    onMeshCreated: (id: string, mesh: THREE.Mesh) => void;
+}) {
+    const { scene, animations } = useGLTF(url);
+    const { world, snap } = useWorldValues();
+    const groupRef = useRef<THREE.Group>(null);
+    const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+    const actionsRef = useRef<Record<string, THREE.AnimationAction>>({});
+    const [hovered, setHover] = useState(false);
+    const animationsRegistered = useRef(false);
+
+    useCursor(hovered && !isTransforming);
+
+    const transform = getTransform(snap, modelId);
+
+    // Configurer la scène (shadows + frustumCulled) — une seule fois au montage
+    useEffect(() => {
+        scene.position.set(0, 0, 0);
+        scene.rotation.set(0, 0, 0);
+        scene.scale.set(1, 1, 1);
+        scene.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+            // Désactiver le frustumCulling sur les SkinnedMesh pour éviter
+            // les artefacts liés à la bounding box des os pendant les animations
+            if ((child as THREE.SkinnedMesh).isSkinnedMesh) {
+                child.frustumCulled = false;
+            }
+        });
+    }, [scene]);
+
+    // Créer le mixer, les actions, et s'abonner aux changements d'animation
+    const activeActionRef = useRef<THREE.AnimationAction | null>(null);
+
+    useEffect(() => {
+        const mixer = new THREE.AnimationMixer(scene);
+        mixerRef.current = mixer;
+
+        const actions: Record<string, THREE.AnimationAction> = {};
+        animations.forEach((clip) => {
+            actions[clip.name] = mixer.clipAction(clip, scene);
+        });
+        actionsRef.current = actions;
+
+        // Fonction qui applique l'état d'animation courant
+        let prevName: string | null = null;
+        let prevPlaying = false;
+
+        function applyAnimationState() {
+            const model = world.models[modelId];
+            const anim = model?.animation;
+            const wantedName = anim?.current ?? null;
+            const wantedPlaying = anim?.playing ?? false;
+
+            if (wantedName === prevName && wantedPlaying === prevPlaying)
+                return;
+            prevName = wantedName;
+            prevPlaying = wantedPlaying;
+
+            // Stopper l'action en cours
+            if (activeActionRef.current) {
+                activeActionRef.current.stop();
+                activeActionRef.current = null;
+            }
+
+            // Lancer la nouvelle si demandé
+            if (wantedName && wantedPlaying) {
+                const action = actions[wantedName];
+                if (action) {
+                    action.reset().play();
+                    activeActionRef.current = action;
+                }
+            }
+        }
+
+        // Appliquer l'état initial
+        applyAnimationState();
+
+        // S'abonner aux changements du modèle via valtio subscribe
+        const model = world.models[modelId];
+        const unsubscribe = model
+            ? subscribe(model, applyAnimationState)
+            : () => {};
+
+        return () => {
+            unsubscribe();
+            mixer.stopAllAction();
+            mixer.uncacheRoot(scene);
+            mixerRef.current = null;
+            actionsRef.current = {};
+            activeActionRef.current = null;
+        };
+    }, [scene, animations, world, modelId]);
+
+    // Enregistrer les animations disponibles dans l'ECS (une seule fois)
+    useEffect(() => {
+        if (animations.length > 0 && !animationsRegistered.current) {
+            const animNames = animations.map((clip) => clip.name);
+            setModel3DAnimations(world, modelId, animNames);
+            animationsRegistered.current = true;
+        }
+    }, [animations, world, modelId]);
+
+    // Tick le mixer à chaque frame (juste l'avancement du temps)
+    useFrame((_, delta) => {
+        mixerRef.current?.update(delta);
+    });
+
+    useEffect(() => {
+        if (groupRef.current) {
+            // Enregistrer le group comme "mesh" pour les TransformControls
+            setTimeout(
+                () =>
+                    onMeshCreated(
+                        modelId,
+                        groupRef.current as unknown as THREE.Mesh,
+                    ),
+                0,
+            );
+        }
+    }, [modelId, onMeshCreated]);
+
+    if (!transform) return null;
+
+    return (
+        <group
+            ref={groupRef}
+            userData={{ id: modelId, type: "model" }}
+            position={[
+                transform.position.x,
+                transform.position.y,
+                transform.position.z,
+            ]}
+            rotation={[
+                degToRad(transform.rotation.x),
+                degToRad(transform.rotation.y),
+                degToRad(transform.rotation.z),
+            ]}
+            scale={[transform.scale.x, transform.scale.y, transform.scale.z]}
+            onClick={(e) => {
+                if (isTransforming) {
+                    e.stopPropagation();
+                }
+            }}
+            onPointerOver={(e) =>
+                !isTransforming && (e.stopPropagation(), setHover(true))
+            }
+            onPointerOut={() => setHover(false)}
+        >
+            <primitive object={scene} />
+        </group>
+    );
+}
+
+/**
+ * Composant pour les primitives générées (cube, sphere, etc.)
+ */
+function PrimitiveModel({
     modelId,
     isTransforming,
     onMeshCreated,
@@ -20,13 +205,6 @@ export function Model3D({
     const { snap } = useWorldValues();
     const meshRef = useRef<THREE.Mesh>(null);
 
-    // Stocker une ref vers le model pour la synchronisation
-    const modelRef = useRef(modelId);
-
-    useEffect(() => {
-        modelRef.current = modelId;
-    }, [modelId]);
-
     useCursor(hovered && !isTransforming);
 
     useEffect(() => {
@@ -36,7 +214,6 @@ export function Model3D({
     }, [modelId, onMeshCreated]);
 
     const primitive = getModel3DMetadata(snap, modelId)?.primitive;
-
     const transform = getTransform(snap, modelId);
 
     if (!transform) return null;
@@ -65,7 +242,7 @@ export function Model3D({
             onPointerOver={(e) =>
                 !isTransforming && (e.stopPropagation(), setHover(true))
             }
-            onPointerOut={(e) => setHover(false)}
+            onPointerOut={() => setHover(false)}
         >
             {primitive === "cube" && <boxGeometry args={[1, 1, 1]} />}
             {primitive === "sphere" && <sphereGeometry args={[0.5, 32, 32]} />}
@@ -76,4 +253,109 @@ export function Model3D({
             <meshStandardMaterial side={2} />
         </mesh>
     );
+}
+
+/**
+ * Placeholder affiché pendant le chargement des modèles 3D
+ */
+function ModelLoadingPlaceholder({
+    modelId,
+    onMeshCreated,
+}: {
+    modelId: Entity;
+    onMeshCreated: (id: string, mesh: THREE.Mesh) => void;
+}) {
+    const { snap } = useWorldValues();
+    const meshRef = useRef<THREE.Mesh>(null);
+    const transform = getTransform(snap, modelId);
+
+    useEffect(() => {
+        if (meshRef.current) {
+            setTimeout(() => onMeshCreated(modelId, meshRef.current!), 0);
+        }
+    }, [modelId, onMeshCreated]);
+
+    if (!transform) return null;
+
+    return (
+        <mesh
+            ref={meshRef}
+            userData={{ id: modelId, type: "model" }}
+            position={[
+                transform.position.x,
+                transform.position.y,
+                transform.position.z,
+            ]}
+        >
+            <boxGeometry args={[0.5, 0.5, 0.5]} />
+            <meshStandardMaterial
+                color="#888888"
+                wireframe
+                transparent
+                opacity={0.5}
+            />
+        </mesh>
+    );
+}
+
+/**
+ * Composant principal Model3D qui dispatch selon le format
+ */
+export function Model3D({
+    modelId,
+    isTransforming,
+    onMeshCreated,
+}: {
+    modelId: Entity;
+    isTransforming?: boolean;
+    onMeshCreated: (id: string, mesh: THREE.Mesh) => void;
+}) {
+    const { snap } = useWorldValues();
+    const { user } = useUser();
+
+    const format = getModel3DFormat(snap, modelId);
+    const fileId = getModel3DFileId(snap, modelId);
+
+    // Modèles générés (primitives)
+    if (format === ModelFileFormat.GENERATED) {
+        return (
+            <PrimitiveModel
+                modelId={modelId}
+                isTransforming={isTransforming}
+                onMeshCreated={onMeshCreated}
+            />
+        );
+    }
+
+    // Modèles GLTF/GLB chargés depuis GridFS
+    if (
+        (format === ModelFileFormat.GLTF || format === ModelFileFormat.GLB) &&
+        fileId
+    ) {
+        const extension = format === ModelFileFormat.GLB ? ".glb" : ".gltf";
+        // URL scopée par utilisateur : chaque user accède uniquement à ses fichiers.
+        // Le param ?eid= force useGLTF à charger une copie indépendante par entité.
+        const url = `/api/files/${user!.uid}/${fileId}${extension}?eid=${modelId}`;
+
+        return (
+            <Suspense
+                fallback={
+                    <ModelLoadingPlaceholder
+                        modelId={modelId}
+                        onMeshCreated={onMeshCreated}
+                    />
+                }
+            >
+                <GLTFModel
+                    url={url}
+                    modelId={modelId}
+                    isTransforming={isTransforming}
+                    onMeshCreated={onMeshCreated}
+                />
+            </Suspense>
+        );
+    }
+
+    // Fallback: format non supporté
+    return null;
 }

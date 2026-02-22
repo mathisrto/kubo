@@ -130,7 +130,11 @@ import { Readable } from "stream";
 //     texture.fileId = DEFAULT_TEXTURE;
 // }
 
-export async function importFile(formData: FormData, filesPort: FilesPort) {
+export async function importFile(
+    formData: FormData,
+    filesPort: FilesPort,
+    userId: string,
+) {
     const file = formData.get("file") as File;
 
     if (!file) {
@@ -140,14 +144,21 @@ export async function importFile(formData: FormData, filesPort: FilesPort) {
     // Détecter l'extension du fichier
     const extension = file.name.substring(file.name.lastIndexOf(".")); // .hdr, .exr, etc.
 
+    // Déterminer le type de fichier selon l'extension
+    const model3dExtensions = [".gltf", ".glb", ".obj", ".fbx", ".stl"];
+    const fileType = model3dExtensions.includes(extension.toLowerCase())
+        ? "model3d"
+        : "texture";
+
     // Lire le fichier côté serveur
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     const uploadedFile = await filesPort.uploadFile(
         buffer,
-        "texture",
-        extension
+        fileType as "model3d" | "texture",
+        extension,
+        userId,
     );
 
     return {
@@ -155,10 +166,68 @@ export async function importFile(formData: FormData, filesPort: FilesPort) {
     };
 }
 
-export async function exportFile(fileId: string, filesPort: FilesPort) {
+export async function importModel3D(
+    formData: FormData,
+    filesPort: FilesPort,
+    userId: string,
+): Promise<{ gridFsId: string; format: string; filename: string }> {
+    const file = formData.get("file") as File;
+
+    if (!file) {
+        throw new Error("No file provided");
+    }
+
+    // Validation de la taille (200 Mo max)
+    if (file.size > 200 * 1024 * 1024) {
+        throw new Error("File too large (max 200MB)");
+    }
+
+    // Détecter l'extension et le format
+    const extension = file.name
+        .substring(file.name.lastIndexOf("."))
+        .toLowerCase();
+
+    const formatMap: Record<string, string> = {
+        ".gltf": "gltf",
+        ".glb": "glb",
+    };
+
+    const format = formatMap[extension];
+    if (!format) {
+        throw new Error(
+            `Unsupported 3D format: ${extension}. Supported: .gltf, .glb`,
+        );
+    }
+
+    // Nom du fichier sans extension
+    const filename = file.name.substring(0, file.name.lastIndexOf("."));
+
+    // Lire le fichier côté serveur
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const uploadedFile = await filesPort.uploadFile(
+        buffer,
+        "model3d",
+        extension,
+        userId,
+    );
+
+    return {
+        gridFsId: uploadedFile.gridFsId.toString(),
+        format,
+        filename,
+    };
+}
+
+export async function exportFile(
+    fileId: string,
+    filesPort: FilesPort,
+    userId: string,
+) {
     // Récupérer les infos du fichier pour avoir l'extension
-    const fileInfo = await filesPort.getFileInfo(fileId);
-    const fileStream = await filesPort.downloadFile(fileId);
+    const fileInfo = await filesPort.getFileInfo(fileId, userId);
+    const fileStream = await filesPort.downloadFile(fileId, userId);
 
     // Convertir le stream en buffer pour NextResponse
     const chunks: Buffer[] = [];

@@ -100,7 +100,9 @@
     "DashboardNavbar": {
         "scene_reset_success": "Scene reset successfully",
         "scene_saved_success": "Scene saved successfully",
-        "import_success": "3D object imported successfully",
+        "import_success": "3D model imported successfully",
+        "import_error": "Failed to import 3D model",
+        "import_file_too_large": "File is too large (max 200MB)",
         "export_success": "Scene exported successfully",
         "environment_image_too_large": "Environment image is too large (max 30MB)",
         "environment_image_updated": "Environment image updated",
@@ -121,7 +123,11 @@
         "environment_intensity": "Environment intensity",
         "user": "User",
         "email_placeholder": "email@example.com",
-        "logout": "Logout"
+        "logout": "Logout",
+        "undo": "Undo",
+        "redo": "Redo",
+        "undo_success": "Action undone",
+        "redo_success": "Action redone"
     },
     "HierarchySection": {
         "default_name": "Unnamed object",
@@ -155,6 +161,12 @@
         "textures": "Textures",
         "soon": "Coming soon...",
         "texture_management_coming_soon": "Texture management coming soon"
+    },
+    "AnimationPanel": {
+        "select_animation": "Choose animation",
+        "play": "Play animation",
+        "pause": "Pause",
+        "stop": "Stop animation"
     },
     "ThreeRenderer": {
         "loading_scene": "Loading 3D scene..."

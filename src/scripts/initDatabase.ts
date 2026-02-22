@@ -10,7 +10,11 @@ const NODE_ENV_VALUES: Exclude<NodeEnv, undefined>[] = [
 
 import dotenv from "dotenv";
 import path from "path";
-import logger from "../logger";
+
+const log = {
+    info: (msg: string) => console.log(msg),
+    error: (msg: string) => console.error(msg),
+};
 
 dotenv.config();
 dotenv.config({
@@ -40,25 +44,25 @@ async function initDatabase() {
 
         if (!dbName || !user || !password || !uri || !rootUser || !rootPass) {
             throw new Error(
-                "Variables d'environnement de la base de données manquantes"
+                "Variables d'environnement de la base de données manquantes",
             );
         }
 
-        logger.info(
-            `🔧 Initialisation de la base de données pour l'environnement ${env}`
+        log.info(
+            `🔧 Initialisation de la base de données pour l'environnement ${env}`,
         );
 
         const client = new MongoClient(
             `mongodb://${rootUser}:${rootPass}@${uri}/admin`,
             {
                 serverSelectionTimeoutMS: 5000, // 5 secondes au lieu de 30
-            }
+            },
         );
 
         try {
             // Connexion à MongoDB
             await client.connect();
-            logger.info("✅ Connexion à MongoDB réussie");
+            log.info("✅ Connexion à MongoDB réussie");
 
             const adminDb = client.db("admin");
 
@@ -69,9 +73,9 @@ async function initDatabase() {
                     pwd: password,
                     roles: [{ role: "readWrite", db: dbName }],
                 });
-                logger.info(`✅ Utilisateur '${user}' créé`);
+                log.info(`✅ Utilisateur '${user}' créé`);
             } catch {
-                logger.info(`ℹ️ Utilisateur '${user}' existe déjà`);
+                log.info(`ℹ️ Utilisateur '${user}' existe déjà`);
             }
 
             // Création de la collection 'scenes'
@@ -79,20 +83,20 @@ async function initDatabase() {
             const collections = await appDb.listCollections().toArray();
             if (!collections.find((c) => c.name === "scenes")) {
                 await appDb.createCollection("scenes");
-                logger.info("✅ Collection 'scenes' créée");
+                log.info("✅ Collection 'scenes' créée");
             } else {
-                logger.info("ℹ️ Collection 'scenes' existe déjà");
+                log.info("ℹ️ Collection 'scenes' existe déjà");
             }
 
             // Création de la collection 'files'
             if (!collections.find((c) => c.name === "files")) {
                 await appDb.createCollection("files");
-                logger.info("✅ Collection 'files' créée");
+                log.info("✅ Collection 'files' créée");
             } else {
-                logger.info("ℹ️ Collection 'files' existe déjà");
+                log.info("ℹ️ Collection 'files' existe déjà");
             }
 
-            logger.info(`✅ Base '${dbName}' prête à l'emploi`);
+            log.info(`✅ Base '${dbName}' prête à l'emploi`);
         } catch {
             throw new Error("❌ Impossible de se connecter à MongoDB");
         } finally {
@@ -101,4 +105,4 @@ async function initDatabase() {
     }
 }
 
-initDatabase().catch(logger.error);
+initDatabase().catch(log.error);

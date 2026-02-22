@@ -1,3 +1,4 @@
+import { useWorldHistory } from "@/hooks/use-world-history";
 import { initWorldAction, savePatches } from "@/src/actions/sceneActions";
 import { useUser } from "@/src/contexts/userContext";
 import { createReactiveWorld } from "@/src/core/ecs/engine/sceneEngine";
@@ -30,7 +31,7 @@ export const WorldProvider = ({ children }: Props) => {
                 const reactiveWorld = createReactiveWorld(
                     user.uid,
                     loadedWorld,
-                    savePatches
+                    savePatches,
                 );
                 setWorld(reactiveWorld);
             } catch (error) {
@@ -70,4 +71,9 @@ export const useWorldValues = () => {
     const world = useWorld();
     const snap = useWorldSnapshot();
     return { world, snap };
+};
+
+export const useWorldHistoryValues = () => {
+    const world = useWorld();
+    return useWorldHistory(world);
 };

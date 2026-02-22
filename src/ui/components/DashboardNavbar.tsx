@@ -20,10 +20,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { importFileAction } from "@/src/actions/filesActions";
+import {
+    importFileAction,
+    importModel3DAction,
+} from "@/src/actions/filesActions";
 import { saveWorldAction } from "@/src/actions/sceneActions";
 import { useUser } from "@/src/contexts/userContext";
-import { useWorldValues } from "@/src/contexts/worldContext";
+import {
+    useWorldHistoryValues,
+    useWorldValues,
+} from "@/src/contexts/worldContext";
 import {
     updateCameraFar,
     updateCameraFOV,
@@ -34,6 +40,7 @@ import {
     updateEnvironmentIntensity,
     updateEnvironmentMap,
 } from "@/src/core/ecs/engine/environmentEngine";
+import { createModel3D } from "@/src/core/ecs/engine/model3dEngine";
 import { createOrResetScene } from "@/src/core/ecs/engine/utilsEngine";
 import {
     getCameraFar,
@@ -42,18 +49,20 @@ import {
     getCameraType,
 } from "@/src/core/ecs/queries/cameraQuery";
 import { getEnvironmentIntensity } from "@/src/core/ecs/queries/environmentQuery";
-import { CameraType } from "@/src/types";
+import { CameraType, ModelFileFormat } from "@/src/types";
 import {
     Camera,
     Download,
     LogOutIcon,
+    Redo2,
     RotateCcw,
     Save,
+    Undo2,
     Upload,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 export const DashboardNavbar = () => {
@@ -61,6 +70,30 @@ export const DashboardNavbar = () => {
     const { user, logout } = useUser();
     const router = useRouter();
     const { world, snap } = useWorldValues();
+    const { undo, redo, canUndo, canRedo } = useWorldHistoryValues();
+
+    // Raccourcis clavier Ctrl+Z / Ctrl+Y
+    const handleKeyboard = useCallback(
+        (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+                e.preventDefault();
+                if (undo()) toast.success(t("undo_success"));
+            }
+            if (
+                (e.ctrlKey || e.metaKey) &&
+                (e.key === "y" || (e.key === "z" && e.shiftKey))
+            ) {
+                e.preventDefault();
+                if (redo()) toast.success(t("redo_success"));
+            }
+        },
+        [undo, redo, t],
+    );
+
+    useEffect(() => {
+        window.addEventListener("keydown", handleKeyboard);
+        return () => window.removeEventListener("keydown", handleKeyboard);
+    }, [handleKeyboard]);
 
     const handleReset = () => {
         createOrResetScene(world);
@@ -84,12 +117,38 @@ export const DashboardNavbar = () => {
     const handleImport3D = () => {
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = ".gltf,.glb,.obj,.fbx";
-        input.onchange = (e) => {
+        input.accept = ".gltf,.glb";
+        input.onchange = async (e) => {
             const file = (e.target as HTMLInputElement).files?.[0];
-            if (file) {
-                // TODO: Implémenter l'import 3D
+            if (!file) return;
+
+            // Validation taille (200 Mo)
+            if (file.size > 200 * 1024 * 1024) {
+                toast.error(t("import_file_too_large"));
+                return;
+            }
+
+            try {
+                // 1. Upload du fichier vers GridFS via server action
+                const formData = new FormData();
+                formData.append("file", file);
+                const result = await importModel3DAction(formData);
+
+                // 2. Créer l'entité Model3D dans le World ECS
+                const formatMap: Record<string, ModelFileFormat> = {
+                    gltf: ModelFileFormat.GLTF,
+                    glb: ModelFileFormat.GLB,
+                };
+
+                createModel3D(world, {
+                    fileId: result.gridFsId,
+                    format: formatMap[result.format],
+                    name: result.filename,
+                });
+
                 toast.success(t("import_success"));
+            } catch (error) {
+                toast.error(t("import_error"));
             }
         };
         input.click();
@@ -177,7 +236,7 @@ export const DashboardNavbar = () => {
                                                 onValueChange={(value) => {
                                                     updateCameraType(
                                                         world,
-                                                        value as CameraType
+                                                        value as CameraType,
                                                     );
                                                 }}
                                                 value={getCameraType(snap)}
@@ -192,7 +251,7 @@ export const DashboardNavbar = () => {
                                                         }
                                                     >
                                                         {t(
-                                                            "camera_perspective"
+                                                            "camera_perspective",
                                                         )}
                                                     </SelectItem>
                                                     <SelectItem
@@ -201,7 +260,7 @@ export const DashboardNavbar = () => {
                                                         }
                                                     >
                                                         {t(
-                                                            "camera_orthographic"
+                                                            "camera_orthographic",
                                                         )}
                                                     </SelectItem>
                                                 </SelectContent>
@@ -222,8 +281,8 @@ export const DashboardNavbar = () => {
                                                     updateCameraFOV(
                                                         world,
                                                         parseFloat(
-                                                            e.target.value
-                                                        )
+                                                            e.target.value,
+                                                        ),
                                                     )
                                                 }
                                                 className="w-full h-2"
@@ -244,8 +303,8 @@ export const DashboardNavbar = () => {
                                                     updateCameraNear(
                                                         world,
                                                         parseFloat(
-                                                            e.target.value
-                                                        )
+                                                            e.target.value,
+                                                        ),
                                                     )
                                                 }
                                                 className="w-full h-2"
@@ -266,8 +325,8 @@ export const DashboardNavbar = () => {
                                                     updateCameraFar(
                                                         world,
                                                         parseFloat(
-                                                            e.target.value
-                                                        )
+                                                            e.target.value,
+                                                        ),
                                                     )
                                                 }
                                                 className="w-full h-2"
@@ -301,7 +360,7 @@ export const DashboardNavbar = () => {
                                                 ref={formRef}
                                                 action={async (formData) => {
                                                     await updateEnvironmentMapF(
-                                                        formData
+                                                        formData,
                                                     );
                                                 }}
                                             >
@@ -321,7 +380,7 @@ export const DashboardNavbar = () => {
                                             <Label className="text-xs mb-1 block">
                                                 {t("environment_intensity")}:{" "}
                                                 {getEnvironmentIntensity(
-                                                    snap
+                                                    snap,
                                                 ).toFixed(1)}
                                             </Label>
                                             <input
@@ -330,14 +389,14 @@ export const DashboardNavbar = () => {
                                                 max={3}
                                                 step={0.1}
                                                 value={getEnvironmentIntensity(
-                                                    snap
+                                                    snap,
                                                 )}
                                                 onChange={(e) =>
                                                     updateEnvironmentIntensity(
                                                         world,
                                                         parseFloat(
-                                                            e.target.value
-                                                        )
+                                                            e.target.value,
+                                                        ),
                                                     )
                                                 }
                                                 className="w-full h-2"
@@ -364,6 +423,29 @@ export const DashboardNavbar = () => {
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
+                </div>
+
+                <div className="flex items-center gap-1">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                            if (undo()) toast.success(t("undo_success"));
+                        }}
+                        title={`${t("undo")} (Ctrl+Z)`}
+                    >
+                        <Undo2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                            if (redo()) toast.success(t("redo_success"));
+                        }}
+                        title={`${t("redo")} (Ctrl+Y)`}
+                    >
+                        <Redo2 className="w-4 h-4" />
+                    </Button>
                 </div>
 
                 <div className="flex justify-center items-center">
