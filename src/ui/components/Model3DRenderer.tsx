@@ -1,4 +1,5 @@
 import { useUser } from "@/src/contexts/userContext";
+import { useViewMode } from "@/src/contexts/viewModeContext";
 import { useWorldValues } from "@/src/contexts/worldContext";
 import { Entity } from "@/src/core/ecs/components/indexComponent";
 import { setModel3DAnimations } from "@/src/core/ecs/engine/model3dEngine";
@@ -8,7 +9,8 @@ import {
     getModel3DMetadata,
 } from "@/src/core/ecs/queries/model3dQuery";
 import { getTransform } from "@/src/core/ecs/queries/transformQuery";
-import { ModelFileFormat } from "@/src/types";
+import { ModelFileFormat, ViewMode } from "@/src/types";
+import { extendGLTFLoader } from "@/src/ui/helpers/gltfSpecularGlossinessPlugin";
 import { useCursor, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -36,13 +38,17 @@ function GLTFModel({
     isTransforming?: boolean;
     onMeshCreated: (id: string, mesh: THREE.Mesh) => void;
 }) {
-    const { scene, animations } = useGLTF(url);
+    const { scene, animations } = useGLTF(url, true, true, extendGLTFLoader);
     const { world, snap } = useWorldValues();
+    const { viewMode } = useViewMode();
     const groupRef = useRef<THREE.Group>(null);
     const mixerRef = useRef<THREE.AnimationMixer | null>(null);
     const actionsRef = useRef<Record<string, THREE.AnimationAction>>({});
     const [hovered, setHover] = useState(false);
     const animationsRegistered = useRef(false);
+    const originalMaterials = useRef<
+        Map<THREE.Mesh, THREE.Material | THREE.Material[]>
+    >(new Map());
 
     useCursor(hovered && !isTransforming);
 
@@ -65,6 +71,43 @@ function GLTFModel({
             }
         });
     }, [scene]);
+
+    // ─── Override des matériaux selon le mode de vue ─────────────────────
+    useEffect(() => {
+        const meshes: THREE.Mesh[] = [];
+        scene.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+                meshes.push(child as THREE.Mesh);
+            }
+        });
+
+        if (viewMode === ViewMode.WIREFRAME || viewMode === ViewMode.SOLID) {
+            meshes.forEach((mesh) => {
+                // Sauvegarder le matériau original une seule fois
+                if (!originalMaterials.current.has(mesh)) {
+                    originalMaterials.current.set(mesh, mesh.material);
+                }
+                if (viewMode === ViewMode.WIREFRAME) {
+                    mesh.material = new THREE.MeshBasicMaterial({
+                        color: 0x00ff88,
+                        wireframe: true,
+                    });
+                } else {
+                    mesh.material = new THREE.MeshStandardMaterial({
+                        color: 0xaaaaaa,
+                        roughness: 0.7,
+                        metalness: 0.0,
+                    });
+                }
+            });
+        } else {
+            // Restaurer les matériaux originaux
+            originalMaterials.current.forEach((mat, mesh) => {
+                mesh.material = mat;
+            });
+            originalMaterials.current.clear();
+        }
+    }, [viewMode, scene]);
 
     // Créer le mixer, les actions, et s'abonner aux changements d'animation
     const activeActionRef = useRef<THREE.AnimationAction | null>(null);
@@ -91,17 +134,34 @@ function GLTFModel({
 
             if (wantedName === prevName && wantedPlaying === prevPlaying)
                 return;
+
+            // Sauvegarder les anciennes valeurs AVANT de les mettre à jour
+            const oldName = prevName;
             prevName = wantedName;
             prevPlaying = wantedPlaying;
 
-            // Stopper l'action en cours
-            if (activeActionRef.current) {
-                activeActionRef.current.stop();
-                activeActionRef.current = null;
-            }
-
-            // Lancer la nouvelle si demandé
-            if (wantedName && wantedPlaying) {
+            // Si on change d'animation, stopper l'ancienne et lancer la nouvelle
+            if (wantedName !== oldName) {
+                if (activeActionRef.current) {
+                    activeActionRef.current.stop();
+                    activeActionRef.current = null;
+                }
+                if (wantedName && wantedPlaying) {
+                    const action = actions[wantedName];
+                    if (action) {
+                        action.reset().play();
+                        activeActionRef.current = action;
+                    }
+                }
+            } else if (activeActionRef.current) {
+                // Même animation : gérer play/pause sans reset
+                if (wantedPlaying && activeActionRef.current.paused) {
+                    activeActionRef.current.paused = false;
+                } else if (!wantedPlaying && !activeActionRef.current.paused) {
+                    activeActionRef.current.paused = true;
+                }
+            } else if (wantedName && wantedPlaying) {
+                // Pas d'action active mais on veut jouer
                 const action = actions[wantedName];
                 if (action) {
                     action.reset().play();
@@ -203,6 +263,7 @@ function PrimitiveModel({
 }) {
     const [hovered, setHover] = useState(false);
     const { snap } = useWorldValues();
+    const { viewMode } = useViewMode();
     const meshRef = useRef<THREE.Mesh>(null);
 
     useCursor(hovered && !isTransforming);
@@ -250,7 +311,17 @@ function PrimitiveModel({
                 <cylinderGeometry args={[0.5, 0.5, 1, 32]} />
             )}
             {primitive === "plane" && <planeGeometry args={[1, 1]} />}
-            <meshStandardMaterial side={2} />
+            {viewMode === ViewMode.WIREFRAME ? (
+                <meshBasicMaterial color={0x00ff88} wireframe />
+            ) : viewMode === ViewMode.SOLID ? (
+                <meshStandardMaterial
+                    color={0xaaaaaa}
+                    roughness={0.7}
+                    metalness={0.0}
+                />
+            ) : (
+                <meshStandardMaterial side={2} />
+            )}
         </mesh>
     );
 }

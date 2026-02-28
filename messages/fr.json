@@ -103,7 +103,11 @@
         "import_success": "Modèle 3D importé avec succès",
         "import_error": "Erreur lors de l'import du modèle 3D",
         "import_file_too_large": "Le fichier est trop volumineux (max 200 Mo)",
-        "export_success": "Scène exportée avec succès",
+        "export_success": "Scène exportée avec succès (.kubo)",
+        "export_error": "Erreur lors de l'export de la scène",
+        "import_scene": "Importer une scène (.kubo)",
+        "import_scene_success": "Scène importée avec succès depuis le fichier .kubo",
+        "import_scene_error": "Erreur lors de l'import de la scène .kubo",
         "environment_image_too_large": "L'image d'environnement est trop grande (max 30MB)",
         "environment_image_updated": "Image d'environnement mise à jour",
         "scene": "Paramètres de la scène",
@@ -157,10 +161,16 @@
         "range": "Portée",
         "color": "Couleur"
     },
-    "TextureSection": {
-        "textures": "Textures",
-        "soon": "Bientôt...",
-        "texture_management_coming_soon": "La gestion des textures arrive bientôt"
+    "ViewModeSection": {
+        "title": "Mode de vue",
+        "wireframe": "Fil de fer",
+        "wireframe_desc": "Arêtes uniquement",
+        "solid": "Solide",
+        "solid_desc": "Matériau uniforme",
+        "material": "Matériau",
+        "material_desc": "Textures sans env.",
+        "rendered": "Rendu",
+        "rendered_desc": "Rendu complet"
     },
     "AnimationPanel": {
         "select_animation": "Choisir une animation",

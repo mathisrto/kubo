@@ -4,17 +4,14 @@ import { useTransform } from "@/src/contexts/transformContext";
 import { CreateObjectsSection } from "@/src/ui/components/CreateObjectsSection";
 import { DashboardNavbar } from "@/src/ui/components/DashboardNavbar";
 import { HierarchySection } from "@/src/ui/components/HierarchySection";
-import { TextureSection } from "@/src/ui/components/TextureSection";
 import ThreeScene from "@/src/ui/components/ThreeRenderer";
 import { TransformToolsSection } from "@/src/ui/components/TransformToolsSection";
+import { ViewModeSection } from "@/src/ui/components/ViewModeSection";
 
-import { useWorldValues } from "@/src/contexts/worldContext";
-import { isModel3DEntity } from "@/src/core/ecs/queries/utilsQuery";
 import { PropertiesSection } from "@/src/ui/components/PropertiesSection";
 import { Separator } from "@radix-ui/react-separator";
 
 const DashboardPage = () => {
-    const { snap } = useWorldValues();
     const { selectedObject } = useTransform();
 
     return (
@@ -28,10 +25,7 @@ const DashboardPage = () => {
                     <div className="flex-1 overflow-auto p-2">
                         <HierarchySection />
                         <Separator className="my-4" />
-                        {selectedObject &&
-                            isModel3DEntity(snap, selectedObject) && (
-                                <TextureSection />
-                            )}
+                        <ViewModeSection />
                     </div>
                 </aside>
 

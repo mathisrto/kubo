@@ -24,9 +24,19 @@ const config = {
     setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
     collectCoverageFrom: [
         "src/**/*.{ts,tsx}",
+        "app/api/**/*.{ts,tsx}",
         "!src/**/*.d.ts",
         "!src/**/*.stories.{ts,tsx}",
     ],
+    coverageReporters: ["text", "lcov", "html"],
+    coverageThreshold: {
+        global: {
+            lines: 25,
+            statements: 25,
+            functions: 30,
+            branches: 20,
+        },
+    },
     coveragePathIgnorePatterns: ["/node_modules/", "/__tests__/"],
 };
 

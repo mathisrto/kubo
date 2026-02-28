@@ -49,10 +49,12 @@ import {
     getCameraType,
 } from "@/src/core/ecs/queries/cameraQuery";
 import { getEnvironmentIntensity } from "@/src/core/ecs/queries/environmentQuery";
+import { downloadKuboFile, openKuboFile } from "@/src/core/kubo/kuboFile";
 import { CameraType, ModelFileFormat } from "@/src/types";
 import {
     Camera,
     Download,
+    FolderOpen,
     LogOutIcon,
     Redo2,
     RotateCcw,
@@ -148,15 +150,44 @@ export const DashboardNavbar = () => {
 
                 toast.success(t("import_success"));
             } catch (error) {
-                toast.error(t("import_error"));
+                const message =
+                    error instanceof Error ? error.message : t("import_error");
+                toast.error(message);
             }
         };
         input.click();
     };
 
     const handleExport = () => {
-        // TODO: Implémenter l'export
-        toast.success(t("export_success"));
+        try {
+            downloadKuboFile(world);
+            toast.success(t("export_success"));
+        } catch {
+            toast.error(t("export_error"));
+        }
+    };
+
+    const handleImportScene = async () => {
+        try {
+            const importedWorld = await openKuboFile();
+            if (!importedWorld) return; // annulé
+
+            // Appliquer le World importé sur le proxy réactif
+            world.camera = importedWorld.camera;
+            world.environment = importedWorld.environment;
+            world.lights = importedWorld.lights;
+            world.materials = importedWorld.materials;
+            world.models = importedWorld.models;
+            world.names = importedWorld.names;
+            world.transforms = importedWorld.transforms;
+            world.textures = importedWorld.textures;
+
+            toast.success(t("import_scene_success"));
+        } catch (err) {
+            const message =
+                err instanceof Error ? err.message : t("import_scene_error");
+            toast.error(message);
+        }
     };
 
     const formRef = useRef<HTMLFormElement>(null);
@@ -210,6 +241,14 @@ export const DashboardNavbar = () => {
                             >
                                 <Upload className="w-4 h-4" />
                                 <span>{t("import")}</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={handleImportScene}
+                                className="flex items-center gap-2"
+                            >
+                                <FolderOpen className="w-4 h-4" />
+                                <span>{t("import_scene")}</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 onClick={handleExport}

@@ -2,44 +2,23 @@ name: CI/CD Pipeline
 
 on:
     push:
-        branches:
-            - main
-            - develop
-            - dev
+        branches: ["main", "develop", "dev"]
     pull_request:
-        branches:
-            - main
-            - develop
-            - dev
+        branches: ["main", "develop", "dev"]
 
 env:
     NODE_VERSION: "20.x"
 
 jobs:
-    # Job de vérification et tests
-    test:
-        name: Tests et Linting
+    quality:
+        name: Lint + Unit + Integration + Coverage
         runs-on: ubuntu-latest
-
-        services:
-            mongodb:
-                image: mongo:latest
-                ports:
-                    - 27017:27017
-                env:
-                    MONGO_INITDB_ROOT_USERNAME: test_user
-                    MONGO_INITDB_ROOT_PASSWORD: test_password
-                options: >-
-                    --health-cmd "mongosh --eval 'db.adminCommand({ ping: 1 })'"
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 5
 
         steps:
             - name: Checkout du code
               uses: actions/checkout@v4
 
-            - name: Configuration de Node.js
+            - name: Configuration Node.js
               uses: actions/setup-node@v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
@@ -51,29 +30,49 @@ jobs:
             - name: Linting
               run: npm run lint
 
-            - name: Exécution des tests
-              run: npm run test
+            - name: Tests unitaires
+              run: npm run test:unit -- --runInBand
 
-            - name: Upload des résultats de tests
+            - name: Tests d'intégration
+              run: npm run test:integration -- --runInBand
+
+            - name: Coverage
+              run: npm run test:coverage -- --runInBand
+
+            - name: Upload coverage
               if: always()
               uses: actions/upload-artifact@v4
               with:
-                  name: test-results
+                  name: coverage
                   path: coverage/
 
-    # Job de nettoyage et notifications
-    notify:
-        name: Notifications
+    e2e:
+        name: E2E Playwright
         runs-on: ubuntu-latest
-        needs: [test]
-        if: always()
+        needs: quality
 
         steps:
-            - name: Vérification du statut
-              run: |
-                  if [ "${{ needs.test.result }}" == "failure" ] || [ "${{ needs.build.result }}" == "failure" ] || [ "${{ needs.deploy-vercel.result }}" == "failure" ]; then
-                    echo "❌ Le pipeline a échoué"
-                    exit 1
-                  else
-                    echo "✅ Pipeline exécuté avec succès"
-                  fi
+            - name: Checkout du code
+              uses: actions/checkout@v4
+
+            - name: Configuration Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "npm"
+
+            - name: Installation des dépendances
+              run: npm ci
+
+            - name: Installation des navigateurs Playwright
+              run: npx playwright install --with-deps chromium
+
+            - name: Tests e2e
+              run: npm run test:e2e
+
+            - name: Upload Playwright report
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-report
+                  path: playwright-report/

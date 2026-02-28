@@ -199,12 +199,41 @@ export async function importModel3D(
         );
     }
 
-    // Nom du fichier sans extension
-    const filename = file.name.substring(0, file.name.lastIndexOf("."));
-
     // Lire le fichier côté serveur
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    let buffer = Buffer.from(arrayBuffer);
+
+    // Pour les fichiers GLTF, vérifier les références externes
+    // (textures/buffers qui ne sont pas des data URIs)
+    if (format === "gltf") {
+        try {
+            const gltfJson = JSON.parse(buffer.toString("utf-8"));
+            const hasExternalImages = gltfJson.images?.some(
+                (img: { uri?: string }) =>
+                    img.uri && !img.uri.startsWith("data:"),
+            );
+            const hasExternalBuffers = gltfJson.buffers?.some(
+                (buf: { uri?: string }) =>
+                    buf.uri && !buf.uri.startsWith("data:"),
+            );
+
+            if (hasExternalImages || hasExternalBuffers) {
+                throw new Error(
+                    "GLTF files with external textures or buffers are not supported. " +
+                        "Please use a .glb file instead (which embeds all resources), " +
+                        "or export your GLTF with embedded base64 data URIs.",
+                );
+            }
+        } catch (e) {
+            if (e instanceof SyntaxError) {
+                throw new Error("Invalid GLTF file: could not parse JSON.");
+            }
+            throw e;
+        }
+    }
+
+    // Nom du fichier sans extension
+    const filename = file.name.substring(0, file.name.lastIndexOf("."));
 
     const uploadedFile = await filesPort.uploadFile(
         buffer,

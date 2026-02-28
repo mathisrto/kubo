@@ -11,20 +11,25 @@ export class SceneAdapter implements ScenePort {
 
     async savePatches(
         userId: string,
-        update: Record<string, any>
+        update: { $set: Record<string, any>; $unset: Record<string, any> },
     ): Promise<void> {
-        await SceneModel.updateOne(
-            { userId },
-            { $set: update },
-            { upsert: true }
-        );
+        const ops: Record<string, any> = {};
+        if (Object.keys(update.$set).length > 0) {
+            ops.$set = update.$set;
+        }
+        if (Object.keys(update.$unset).length > 0) {
+            ops.$unset = update.$unset;
+        }
+        if (Object.keys(ops).length > 0) {
+            await SceneModel.updateOne({ userId }, ops, { upsert: true });
+        }
     }
 
     async saveWorld(userId: string, world: World): Promise<void> {
         await SceneModel.updateOne(
             { userId },
             { $set: { world } },
-            { upsert: true }
+            { upsert: true },
         );
     }
 

@@ -11,29 +11,33 @@ enablePatches();
 export async function saveWorld(
     userId: string,
     world: World,
-    scenePort: ScenePort
+    scenePort: ScenePort,
 ): Promise<void> {
     await scenePort.saveWorld(userId, world);
 }
 
 export async function load(
     userId: string,
-    scenePort: ScenePort
+    scenePort: ScenePort,
 ): Promise<World | null> {
     return await scenePort.loadWorld(userId);
 }
 
-function patchesToMongoSet(patches: Patch[]): Record<string, any> {
-    const update: Record<string, any> = {};
+function patchesToMongoUpdate(patches: Patch[]): {
+    $set: Record<string, any>;
+    $unset: Record<string, any>;
+} {
+    const $set: Record<string, any> = {};
+    const $unset: Record<string, any> = {};
     for (const patch of patches) {
         const path = ["world", ...patch.path].join(".");
         if (patch.op === "replace" || patch.op === "add") {
-            update[path] = patch.value;
+            $set[path] = patch.value;
         } else if (patch.op === "remove") {
-            update[path] = undefined;
+            $unset[path] = "";
         }
     }
-    return update;
+    return { $set, $unset };
 }
 
 export function createReactiveWorld(
@@ -41,8 +45,8 @@ export function createReactiveWorld(
     initialWorld: World,
     savePatches: (
         userId: string,
-        update: Record<string, any>
-    ) => Promise<void> = async () => {}
+        update: Record<string, any>,
+    ) => Promise<void> = async () => {},
 ): World {
     let previousWorld = JSON.parse(JSON.stringify(initialWorld));
     const worldProxy = proxy(initialWorld);
@@ -61,11 +65,11 @@ export function createReactiveWorld(
                     (draft) => {
                         Object.assign(draft, newWorld);
                     },
-                    (p) => patches.push(...p)
+                    (p) => patches.push(...p),
                 );
 
                 if (patches.length > 0) {
-                    const update = patchesToMongoSet(patches);
+                    const update = patchesToMongoUpdate(patches);
                     await savePatches(userId, update);
                     previousWorld = JSON.parse(JSON.stringify(worldProxy));
                 }
@@ -80,7 +84,7 @@ export function createReactiveWorld(
 
 export async function initWorld(
     userId: string,
-    scenePort: ScenePort
+    scenePort: ScenePort,
 ): Promise<World> {
     let world = await load(userId, scenePort);
 

@@ -2,6 +2,7 @@
 
 import { useTransform } from "@/src/contexts/transformContext";
 import { useUser } from "@/src/contexts/userContext";
+import { useViewMode } from "@/src/contexts/viewModeContext";
 import { useWorldValues } from "@/src/contexts/worldContext";
 import {
     updateCameraPosition,
@@ -28,7 +29,7 @@ import {
     getModel3DById,
     getModels3D,
 } from "@/src/core/ecs/queries/model3dQuery";
-import { CameraType, OBJECT_TYPES } from "@/src/types";
+import { CameraType, OBJECT_TYPES, ViewMode } from "@/src/types";
 import {
     Environment,
     GizmoHelper,
@@ -43,7 +44,7 @@ import {
 import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Outline } from "@react-three/postprocessing";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { degToRad, radToDeg } from "three/src/math/MathUtils.js";
 import { AnimationControlPanel } from "./AnimationControlPanel";
@@ -51,9 +52,31 @@ import { Light3D } from "./Light3DRenderer";
 import { Model3D } from "./Model3DRenderer";
 import { SelectionObserver } from "./SelectionObserver";
 
+/**
+ * Composant Environment mémoïsé pour éviter les re-renders coûteux
+ * Ne se re-rend que si l'URL ou l'intensité changent réellement.
+ */
+const MemoizedEnvironment = memo(function MemoizedEnvironment({
+    url,
+    intensity,
+}: {
+    url: string;
+    intensity: number;
+}) {
+    return (
+        <Environment
+            files={url}
+            background
+            backgroundBlurriness={0.5}
+            environmentIntensity={intensity}
+        />
+    );
+});
+
 function SceneContent() {
     const { world, snap } = useWorldValues();
     const { user } = useUser();
+    const { viewMode } = useViewMode();
 
     const { transformMode, selectedObject } = useTransform();
     const isControlsInitialized = useRef(false);
@@ -77,14 +100,16 @@ function SceneContent() {
     // Derive selectedMesh from selectedObject and meshes instead of using state
     const selectedMesh = selectedObject ? meshes[selectedObject] : undefined;
 
-    const environmentUrl = (() => {
+    const environmentUrl = useMemo(() => {
         const gridFsId = getEnvironmentMap(snap);
         if (!gridFsId) {
             return "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/venice_sunset_1k.hdr";
         }
         // Route scopée par utilisateur pour l'environment map
         return `/api/files/${user!.uid}/${gridFsId}.hdr`;
-    })();
+    }, [getEnvironmentMap(snap), user]);
+
+    const environmentIntensity = getEnvironmentIntensity(snap);
 
     // Gestion des meshes pour modèles et lumières
     const handleMeshCreated = useCallback((id: string, mesh: THREE.Mesh) => {
@@ -96,12 +121,28 @@ function SceneContent() {
 
     return (
         <>
-            <Environment
-                files={environmentUrl}
-                background
-                backgroundBlurriness={0.5}
-                environmentIntensity={getEnvironmentIntensity(snap)}
-            />
+            {/* Environment map : seulement en mode RENDERED */}
+            {viewMode === ViewMode.RENDERED && (
+                <MemoizedEnvironment
+                    url={environmentUrl}
+                    intensity={environmentIntensity}
+                />
+            )}
+
+            {/* Éclairage de remplacement pour les modes sans environment map */}
+            {viewMode !== ViewMode.RENDERED && (
+                <>
+                    <ambientLight intensity={0.6} />
+                    <directionalLight
+                        position={[5, 10, 7]}
+                        intensity={1.0}
+                        castShadow={viewMode === ViewMode.MATERIAL}
+                    />
+                    <directionalLight position={[-3, 5, -5]} intensity={0.3} />
+                </>
+            )}
+
+            {/* Override des matériaux selon le mode de vue */}
             <Select>
                 <SelectionObserver />
                 {/* Modèles 3D */}
@@ -215,9 +256,12 @@ function SceneContent() {
             <OrbitControls
                 makeDefault
                 enableDamping
-                dampingFactor={0.05}
-                minDistance={0.01}
+                dampingFactor={0.1}
+                minDistance={0.1}
                 maxDistance={10000}
+                zoomSpeed={1.2}
+                zoomToCursor
+                panSpeed={1.5}
                 target={[
                     initialCameraTarget.current.x,
                     initialCameraTarget.current.y,
@@ -275,17 +319,21 @@ function SceneContent() {
                 sectionColor="#9d9d9d"
             />
 
-            {/* Post-processing Outline - doit être après tous les objets */}
-            <EffectComposer multisampling={8} autoClear={true}>
+            {/* Post-processing Outline — toujours monté pour éviter les problèmes de pipeline */}
+            <EffectComposer multisampling={4} autoClear={true}>
                 <Outline
-                    selection={selectedMesh ? [selectedMesh] : []}
+                    selection={
+                        (viewMode === ViewMode.RENDERED ||
+                            viewMode === ViewMode.MATERIAL) &&
+                        selectedMesh
+                            ? [selectedMesh]
+                            : []
+                    }
                     visibleEdgeColor={0xffff00}
                     hiddenEdgeColor={0xffff00}
-                    edgeStrength={100}
+                    edgeStrength={3}
                     blur
                     xRay
-                    width={screen.width}
-                    height={screen.height}
                 />
             </EffectComposer>
         </>

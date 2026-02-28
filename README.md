@@ -17,18 +17,18 @@
 
 ## 📋 Table des matières
 
--   [À propos](#-à-propos)
--   [Fonctionnalités](#-fonctionnalités)
--   [Technologies](#-technologies)
--   [Prérequis](#-prérequis)
--   [Installation](#-installation)
--   [Scripts disponibles](#-scripts-disponibles)
--   [Structure du projet](#-structure-du-projet)
--   [Configuration](#️-configuration)
--   [Internationalisation](#-internationalisation)
--   [Tests](#-tests)
--   [Déploiement](#-déploiement)
--   [Auteur](#-auteur)
+- [À propos](#-à-propos)
+- [Fonctionnalités](#-fonctionnalités)
+- [Technologies](#-technologies)
+- [Prérequis](#-prérequis)
+- [Installation](#-installation)
+- [Scripts disponibles](#-scripts-disponibles)
+- [Structure du projet](#-structure-du-projet)
+- [Configuration](#️-configuration)
+- [Internationalisation](#-internationalisation)
+- [Tests](#-tests)
+- [Déploiement](#-déploiement)
+- [Auteur](#-auteur)
 
 ---
 
@@ -38,63 +38,63 @@
 
 ## ✨ Fonctionnalités
 
--   🔐 **Authentification Firebase** - Système complet d'authentification avec login/logout
--   🌍 **Internationalisation** - Support multilingue (FR/EN) avec next-intl
--   🎨 **Interface moderne** - UI components avec Radix UI et Tailwind CSS
--   🎮 **Rendu 3D** - Intégration Three.js avec React Three Fiber
--   📊 **Base de données** - MongoDB avec Mongoose pour la persistance
--   🌙 **Mode sombre** - Thème clair/sombre avec next-themes
--   🔄 **État global** - Gestion d'état avec Valtio et Immer
--   🧪 **Tests** - Suite de tests avec Jest
--   🐳 **Docker** - Containerisation avec Docker et docker-compose
--   📱 **Responsive** - Design adaptatif pour tous les écrans
+- 🔐 **Authentification Firebase** - Système complet d'authentification avec login/logout
+- 🌍 **Internationalisation** - Support multilingue (FR/EN) avec next-intl
+- 🎨 **Interface moderne** - UI components avec Radix UI et Tailwind CSS
+- 🎮 **Rendu 3D** - Intégration Three.js avec React Three Fiber
+- 📊 **Base de données** - MongoDB avec Mongoose pour la persistance
+- 🌙 **Mode sombre** - Thème clair/sombre avec next-themes
+- 🔄 **État global** - Gestion d'état avec Valtio et Immer
+- 🧪 **Tests** - Suite de tests avec Jest
+- 🐳 **Docker** - Containerisation avec Docker et docker-compose
+- 📱 **Responsive** - Design adaptatif pour tous les écrans
 
 ## 🛠 Technologies
 
 ### Core
 
--   **Next.js 16.0.10** - Framework React avec support Turbopack
--   **React 19.2.0** - Bibliothèque UI
--   **TypeScript 5** - Typage statique
+- **Next.js 16.0.10** - Framework React avec support Turbopack
+- **React 19.2.0** - Bibliothèque UI
+- **TypeScript 5** - Typage statique
 
 ### UI/UX
 
--   **Tailwind CSS 4** - Framework CSS utility-first
--   **Radix UI** - Components accessibles et non stylisés
--   **Framer Motion** - Animations fluides
--   **Lucide React** - Icônes modernes
+- **Tailwind CSS 4** - Framework CSS utility-first
+- **Radix UI** - Components accessibles et non stylisés
+- **Framer Motion** - Animations fluides
+- **Lucide React** - Icônes modernes
 
 ### 3D
 
--   **React Three Fiber** - Renderer Three.js pour React
--   **React Three Drei** - Helpers pour R3F
--   **Postprocessing** - Effets post-traitement
+- **React Three Fiber** - Renderer Three.js pour React
+- **React Three Drei** - Helpers pour R3F
+- **Postprocessing** - Effets post-traitement
 
 ### Backend
 
--   **MongoDB 6.20.0** - Base de données NoSQL
--   **Mongoose 9.0.2** - ODM pour MongoDB
--   **Firebase Admin** - Services backend Firebase
+- **MongoDB 6.20.0** - Base de données NoSQL
+- **Mongoose 9.0.2** - ODM pour MongoDB
+- **Firebase Admin** - Services backend Firebase
 
 ### État & Données
 
--   **Valtio** - Gestion d'état proxy-based
--   **Immer** - État immutable
--   **LRU Cache** - Cache en mémoire
+- **Valtio** - Gestion d'état proxy-based
+- **Immer** - État immutable
+- **LRU Cache** - Cache en mémoire
 
 ### Outils de développement
 
--   **ESLint** - Linting
--   **Jest** - Framework de tests
--   **Winston** - Logging
--   **ts-node** - Exécution TypeScript
+- **ESLint** - Linting
+- **Jest** - Framework de tests
+- **Winston** - Logging
+- **ts-node** - Exécution TypeScript
 
 ## 📦 Prérequis
 
--   **Node.js** >= 18.0.0
--   **npm** ou **yarn** ou **pnpm**
--   **MongoDB** (local ou distant)
--   **Docker** (optionnel)
+- **Node.js** >= 18.0.0
+- **npm** ou **yarn** ou **pnpm**
+- **MongoDB** (local ou distant)
+- **Docker** (optionnel)
 
 ## 🚀 Installation
 
@@ -137,17 +137,22 @@ Placez votre fichier `serviceAccountKey.json` dans `data/firebase/`
 
 ## 📜 Scripts disponibles
 
-| Script                   | Description                                        |
-| ------------------------ | -------------------------------------------------- |
-| `npm run start:dev`      | Lance le serveur de développement avec Turbopack   |
-| `npm run start:build`    | Build l'application pour la production             |
-| `npm run start:prod`     | Lance l'application en mode production             |
-| `npm test`               | Exécute les tests Jest                             |
-| `npm run test:watch`     | Tests en mode watch                                |
-| `npm run lint`           | Vérifie le code avec ESLint                        |
-| `npm run init:db`        | Initialise la base de données                      |
-| `npm run init:env:win`   | Configure les fichiers d'environnement (Windows)   |
-| `npm run init:env:linux` | Configure les fichiers d'environnement (Linux/Mac) |
+| Script                     | Description                                        |
+| -------------------------- | -------------------------------------------------- |
+| `npm run start:dev`        | Lance le serveur de développement avec Turbopack   |
+| `npm run start:build`      | Build l'application pour la production             |
+| `npm run start:prod`       | Lance l'application en mode production             |
+| `npm test`                 | Exécute les tests Jest                             |
+| `npm run test:unit`        | Exécute les tests unitaires                        |
+| `npm run test:integration` | Exécute les tests d'intégration                    |
+| `npm run test:coverage`    | Exécute les tests avec rapport de couverture       |
+| `npm run test:e2e`         | Exécute les tests end-to-end (Playwright)          |
+| `npm run test:e2e:ui`      | Lance l'UI Playwright pour déboguer les E2E        |
+| `npm run test:watch`       | Tests en mode watch                                |
+| `npm run lint`             | Vérifie le code avec ESLint                        |
+| `npm run init:db`          | Initialise la base de données                      |
+| `npm run init:env:win`     | Configure les fichiers d'environnement (Windows)   |
+| `npm run init:env:linux`   | Configure les fichiers d'environnement (Linux/Mac) |
 
 ## 📁 Structure du projet
 
@@ -186,9 +191,9 @@ app/
 
 Créez les fichiers suivants :
 
--   `.env.local` - Développement
--   `.env.production.local` - Production
--   `.env.test.local` - Tests
+- `.env.local` - Développement
+- `.env.production.local` - Production
+- `.env.test.local` - Tests
 
 Exemple de configuration :
 
@@ -209,22 +214,49 @@ NEXT_PUBLIC_API_URL=http://localhost:3000
 
 L'application supporte plusieurs langues via **next-intl**. Les traductions sont dans `messages/` :
 
--   `en.json` - Anglais
--   `fr.json` - Français
+- `en.json` - Anglais
+- `fr.json` - Français
 
 Pour ajouter une nouvelle langue, créez un fichier dans `messages/` et configurez `i18n/routing.ts`.
 
 ## 🧪 Tests
 
 ```bash
-# Exécuter tous les tests
+# Tous les tests Jest
 npm test
 
-# Mode watch
+# Unitaires
+npm run test:unit
+
+# Intégration
+npm run test:integration
+
+# Couverture
+npm run test:coverage
+
+# E2E
+npm run test:e2e
+
+# Watch
 npm run test:watch
 ```
 
-Les tests sont dans `__tests__/` et utilisent Jest avec ts-jest.
+Les tests unitaires/intégration sont dans `__tests__/` (Jest + ts-jest).
+Les tests E2E sont dans `e2e/` (Playwright).
+
+### Coverage
+
+Le rapport est généré dans `coverage/` (formats text, HTML et lcov).
+
+### CI/CD
+
+Le pipeline GitHub Actions (`.github/workflows/ci-cd.yml`) exécute :
+
+1. Lint
+2. Tests unitaires
+3. Tests d'intégration
+4. Coverage
+5. Tests E2E Playwright (Chromium)
 
 ## 🐳 Docker
 
@@ -245,9 +277,9 @@ npm run start:prod
 
 ### Déploiement recommandé
 
--   **Vercel** - Déploiement optimisé pour Next.js
--   **Railway** - Déploiement avec MongoDB
--   **AWS/GCP** - Déploiement scalable
+- **Vercel** - Déploiement optimisé pour Next.js
+- **Railway** - Déploiement avec MongoDB
+- **AWS/GCP** - Déploiement scalable
 
 ## 👨‍💻 Auteur
 

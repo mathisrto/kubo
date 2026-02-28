@@ -50,11 +50,25 @@ export function setModel3DAnimations(
     const model = world.models[modelId];
     if (!model) return;
 
-    model.animation = {
-        available: animationNames,
-        current: animationNames.length > 0 ? animationNames[0] : null,
-        playing: false,
-    };
+    const existing = model.animation;
+    // Préserver l'état sauvegardé si une animation existante est valide
+    if (
+        existing &&
+        existing.current &&
+        animationNames.includes(existing.current)
+    ) {
+        model.animation = {
+            available: animationNames,
+            current: existing.current,
+            playing: existing.playing,
+        };
+    } else {
+        model.animation = {
+            available: animationNames,
+            current: animationNames.length > 0 ? animationNames[0] : null,
+            playing: false,
+        };
+    }
 }
 
 /**

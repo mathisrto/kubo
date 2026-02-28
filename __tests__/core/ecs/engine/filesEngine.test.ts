@@ -44,7 +44,8 @@ describe("filesEngine", () => {
             expect(filesPort.uploadFile).toHaveBeenCalledWith(
                 expect.any(Buffer),
                 "texture",
-                ".hdr"
+                ".hdr",
+                undefined,
             );
             expect(result).toEqual({ gridFsId: mockGridFsId });
         });
@@ -54,7 +55,7 @@ describe("filesEngine", () => {
             const mockFile = new File(
                 [new ArrayBuffer(2048)],
                 "environment.exr",
-                { type: "image/x-exr" }
+                { type: "image/x-exr" },
             );
             formData.append("file", mockFile);
 
@@ -75,7 +76,8 @@ describe("filesEngine", () => {
             expect(filesPort.uploadFile).toHaveBeenCalledWith(
                 expect.any(Buffer),
                 "texture",
-                ".exr"
+                ".exr",
+                undefined,
             );
             expect(result.gridFsId).toBe(mockGridFsId);
         });
@@ -103,7 +105,8 @@ describe("filesEngine", () => {
             expect(filesPort.uploadFile).toHaveBeenCalledWith(
                 expect.any(Buffer),
                 "texture",
-                ".jpg"
+                ".jpg",
+                undefined,
             );
         });
 
@@ -111,7 +114,7 @@ describe("filesEngine", () => {
             const formData = new FormData();
 
             await expect(importFile(formData, filesPort)).rejects.toThrow(
-                "No file provided"
+                "No file provided",
             );
         });
 
@@ -152,7 +155,7 @@ describe("filesEngine", () => {
             filesPort.uploadFile.mockRejectedValue(new Error("Upload failed"));
 
             await expect(importFile(formData, filesPort)).rejects.toThrow(
-                "Upload failed"
+                "Upload failed",
             );
         });
     });
@@ -174,8 +177,14 @@ describe("filesEngine", () => {
 
             const result = await exportFile(fileId, filesPort);
 
-            expect(filesPort.getFileInfo).toHaveBeenCalledWith(fileId);
-            expect(filesPort.downloadFile).toHaveBeenCalledWith(fileId);
+            expect(filesPort.getFileInfo).toHaveBeenCalledWith(
+                fileId,
+                undefined,
+            );
+            expect(filesPort.downloadFile).toHaveBeenCalledWith(
+                fileId,
+                undefined,
+            );
             expect(result.buffer).toEqual(mockBuffer);
             expect(result.extension).toBe(".hdr");
         });
@@ -220,7 +229,7 @@ describe("filesEngine", () => {
             const result = await exportFile(fileId, filesPort);
 
             expect(result.buffer).toEqual(
-                Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 9])
+                Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 9]),
             );
         });
 
@@ -228,11 +237,11 @@ describe("filesEngine", () => {
             const fileId = "507f1f77bcf86cd799439014";
 
             filesPort.getFileInfo.mockRejectedValue(
-                new Error("File info not found")
+                new Error("File info not found"),
             );
 
             await expect(exportFile(fileId, filesPort)).rejects.toThrow(
-                "File info not found"
+                "File info not found",
             );
         });
 
@@ -247,11 +256,11 @@ describe("filesEngine", () => {
             } as any);
 
             filesPort.downloadFile.mockRejectedValue(
-                new Error("Download failed")
+                new Error("Download failed"),
             );
 
             await expect(exportFile(fileId, filesPort)).rejects.toThrow(
-                "Download failed"
+                "Download failed",
             );
         });
 

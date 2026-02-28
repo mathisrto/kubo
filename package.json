@@ -8,6 +8,11 @@
         "start:prod": "next start",
         "start:test": "next test --turbopack",
         "test": "jest",
+        "test:unit": "jest --testPathIgnorePatterns=__tests__/integration",
+        "test:integration": "jest __tests__/integration",
+        "test:coverage": "jest --coverage",
+        "test:e2e": "playwright test",
+        "test:e2e:ui": "playwright test --ui",
         "test:watch": "jest --watch",
         "lint": "eslint",
         "init:db": "ts-node ./src/scripts/initDatabase.ts",
@@ -61,6 +66,7 @@
         "winston": "^3.19.0"
     },
     "devDependencies": {
+        "@playwright/test": "^1.56.1",
         "@eslint/eslintrc": "^3",
         "@tailwindcss/postcss": "^4",
         "@types/cors": "^2.8.19",

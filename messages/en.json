@@ -103,7 +103,11 @@
         "import_success": "3D model imported successfully",
         "import_error": "Failed to import 3D model",
         "import_file_too_large": "File is too large (max 200MB)",
-        "export_success": "Scene exported successfully",
+        "export_success": "Scene exported successfully (.kubo)",
+        "export_error": "Failed to export scene",
+        "import_scene": "Import scene (.kubo)",
+        "import_scene_success": "Scene imported successfully from .kubo file",
+        "import_scene_error": "Failed to import .kubo scene",
         "environment_image_too_large": "Environment image is too large (max 30MB)",
         "environment_image_updated": "Environment image updated",
         "scene": "Scene settings",
@@ -157,10 +161,16 @@
         "range": "Range",
         "color": "Color"
     },
-    "TextureSection": {
-        "textures": "Textures",
-        "soon": "Coming soon...",
-        "texture_management_coming_soon": "Texture management coming soon"
+    "ViewModeSection": {
+        "title": "View Mode",
+        "wireframe": "Wireframe",
+        "wireframe_desc": "Edges only",
+        "solid": "Solid",
+        "solid_desc": "Uniform material",
+        "material": "Material",
+        "material_desc": "Textures, no env.",
+        "rendered": "Rendered",
+        "rendered_desc": "Full render"
     },
     "AnimationPanel": {
         "select_animation": "Choose animation",

@@ -27,7 +27,7 @@ export async function saveWorldAction(userId: string, world: World) {
 
 export async function savePatches(
     userId: string,
-    update: Record<string, any>
+    update: { $set: Record<string, any>; $unset: Record<string, any> },
 ): Promise<void> {
     try {
         const scenePort = await getScenePort();

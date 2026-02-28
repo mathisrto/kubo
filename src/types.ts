@@ -77,3 +77,18 @@ export const SAVE_DELAY_MS = 100;
 
 export const locales = ["fr", "en"];
 export const defaultLocale = "fr";
+
+/**
+ * Modes de vue du viewport 3D (inspiré de Blender)
+ *
+ * - WIREFRAME  : affiche uniquement les arêtes (fil de fer)
+ * - SOLID      : matériau gris uniforme, pas de textures, éclairage basique
+ * - MATERIAL   : matériaux + textures, mais sans l'environment map (fond neutre)
+ * - RENDERED   : rendu complet avec environment map, ombres, post-processing
+ */
+export enum ViewMode {
+    WIREFRAME = "wireframe",
+    SOLID = "solid",
+    MATERIAL = "material",
+    RENDERED = "rendered",
+}
